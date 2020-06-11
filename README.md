@@ -9,7 +9,7 @@
 #### camera_snippets.xacro file should go into uuv_simulator/uuv_sensor_plugins/uuv_sensor_ros_plugins/urdf/ if being used independently of the uuv_simulator package provided here.
 
 
-#### Modified uuv_simulator package with a custom world to spawn the docking station and modified camera parameters of the deepleng auv.
+#### Added only the modified uuv_simulator packages to spawn the docking station in a custom world and the package for modified camera parameters of the deepleng auv.
 
 
 #### Launch the world with roslaunch uuv_gazebo_worlds empty_underwater_world.launch
