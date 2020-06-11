@@ -600,7 +600,7 @@
     <!-- <xacro:include filename="$(find deepleng_description)/urdf/actuators.xacro"/> -->
 
     <!-- Include the sensor modules -->
-    <!-- <xacro:include filename="$(find deepleng_description)/urdf/sensors.xacro"/> -->
+    <xacro:include filename="$(find deepleng_description)/urdf/sensors.xacro"/>
 
   </xacro:macro>
 
