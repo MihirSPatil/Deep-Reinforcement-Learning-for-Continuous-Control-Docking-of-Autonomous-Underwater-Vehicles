@@ -27,3 +27,6 @@
 
 
 #### Use the rostopic rostopic pub -r 20 /deepleng/thrusters/0/input uuv_gazebo_ros_plugins_msgs/FloatStamped '{header: auto, data: 40.0}' to publish rpm commands to the auv. To publish to different thrusters only the thruster_id(0,1,2) needs to be changed.
+
+
+#### There are two options for the camera: default_camera and wideangle_camera, checking the input feed on rviz does not show any difference though. Also there is a weird white bar that shows up on the camera feed, I have no idea what that is ?
