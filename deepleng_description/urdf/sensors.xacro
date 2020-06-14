@@ -40,8 +40,9 @@
   </xacro:default_imu> -->
 
   <!-- Mount a camera  -->
-  <!-- <xacro:default_camera namespace="${namespace}" parent_link="${namespace}/base_link" suffix="">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:default_camera> -->
+  <!-- wideangle_camera is the other option -->
+  <xacro:default_camera namespace="${namespace}" parent_link="${namespace}/base_link" suffix="">
+    <origin xyz="1.35714 0 0 " rpy="0 0 0"/>
+  </xacro:default_camera>
 
 </robot>
