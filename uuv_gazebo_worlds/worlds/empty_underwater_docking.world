@@ -97,7 +97,7 @@
     <!-- /home/mihir/sim_ws/src/uuv_simulator/uuv_tutorials/uuv_tutorial_seabed_world/models -->
     <include>
       <uri>model://deepleng_docking_station</uri>
-        <pose frame="world_osg">5.0 0.0 -2.0 0.0 0.0 3.14</pose>
+        <pose frame="world_osg">0.0 0.0 -2.0 0.0 0.0 3.14</pose>
         <static>true</static>
     </include>
 

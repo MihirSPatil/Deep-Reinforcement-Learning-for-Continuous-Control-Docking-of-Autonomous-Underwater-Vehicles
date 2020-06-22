@@ -32,7 +32,7 @@
       suffix="${suffix}"
       parent_link="${parent_link}"
       topic="camera"
-      mass="0.01"
+      mass="0.1"
       update_rate="5"
       hfov="1.3962634"
       width="1360"
@@ -123,7 +123,7 @@
           </image>
           <clip>
             <near>0.02</near>
-            <far>300</far>
+            <far>3000</far>
           </clip>
           <noise>
             <type>gaussian</type>
@@ -157,7 +157,7 @@
 
   <xacro:macro name="underwater_camera_plugin_macro"
     params="namespace suffix parent_link topic mass update_rate
-      hfov width height stddev scale
+      hfov width height stddev
       *inertia *origin">
     <!-- Sensor link -->
     <link name="${namespace}/camera${suffix}_link">
@@ -168,7 +168,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="file://$(find uuv_sensor_ros_plugins)/meshes/oe14-372.dae" scale="${scale} ${scale} ${scale}"/>
+          <mesh filename="file://$(find uuv_sensor_ros_plugins)/meshes/oe14-372.dae" scale="1 1 1"/>
         </geometry>
       </visual>
       <xacro:no_collision/>
@@ -215,8 +215,8 @@
             <format>R8G8B8</format>
           </image>
           <clip>
-            <near>0.02</near>
-            <far>300</far>
+            <near>0.1</near>
+            <far>3000</far>
           </clip>
           <noise>
             <type>gaussian</type>
