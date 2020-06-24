@@ -656,7 +656,7 @@
         <jointName>diving_cell_front_joint</jointName>
 
         <!-- Make the thruster aware of its id -->
-        <thrusterID>4</thrusterID>
+        <thrusterID>3</thrusterID>
 
         <!-- Gain of the input command signal -->
         <gain>1</gain>
@@ -793,7 +793,7 @@
         <jointName>diving_cell_rear_joint</jointName>
 
         <!-- Make the thruster aware of its id -->
-        <thrusterID>5</thrusterID>
+        <thrusterID>4</thrusterID>
 
         <!-- Gain of the input command signal -->
         <gain>1</gain>
