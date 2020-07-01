@@ -30,3 +30,6 @@
 
 
 #### There are two options for the camera: default_camera and wideangle_camera, checking the input feed on rviz does not show any difference though. Also there is a weird white bar that shows up on the camera feed, I have no idea what that is ?
+
+
+#### ROS runs on python 2.7 while the DRL libraries run on python 3.5+. So I think compatibility is going to be an issue.
