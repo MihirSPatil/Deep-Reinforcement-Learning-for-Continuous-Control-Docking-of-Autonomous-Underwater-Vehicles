@@ -1,14 +1,5 @@
 # Thesis_Code
 
-#### The package deepleng_description causes gazebo 7 to crash often, I don't know the reason why?
-
-
-#### Hence the package deepleng_description_simplified was created, which causes less frequent crashes. It containes all the joints, links and actuators in a single base.xacro file.
-
-
-#### camera_snippets.xacro file should go into uuv_simulator/uuv_sensor_plugins/uuv_sensor_ros_plugins/urdf/ if being used independently of the uuv_simulator package provided here.
-
-
 #### Added only the modified uuv_simulator packages to spawn the docking station in a custom world and the package for modified camera parameters of the deepleng auv.
 
 
@@ -20,6 +11,7 @@
 
 #### Launch the deepleng auv with roslaunch deepleng_description upload.launch
 
+
 #### The meshes for docking station are present in uuv_gazebo_worlds/models/deepleng_docking_station.
 
 
@@ -29,7 +21,7 @@
 #### Use the rostopic rostopic pub -r 20 /deepleng/thrusters/0/input uuv_gazebo_ros_plugins_msgs/FloatStamped '{header: auto, data: 40.0}' to publish rpm commands to the auv. To publish to different thrusters only the thruster_id(0,1,2) needs to be changed.
 
 
-#### There are two options for the camera: default_camera and wideangle_camera, checking the input feed on rviz does not show any difference though. Also there is a weird white bar that shows up on the camera feed, I have no idea what that is ?
+#### Probably need to check the values provided by Lukas, especially for the hydrodynamic plugin and the inertia of the robot's base
 
 
 #### ROS runs on python 2.7 while the DRL libraries run on python 3.5+. So I think compatibility is going to be an issue.
