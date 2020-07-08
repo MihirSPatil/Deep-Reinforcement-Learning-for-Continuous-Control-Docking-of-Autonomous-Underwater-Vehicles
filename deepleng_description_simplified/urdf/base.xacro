@@ -35,7 +35,7 @@
   <xacro:property name="collision_mesh_file_z_thruster" value="file://$(find deepleng_description)/meshes/z_thruster.stl"/>
 
   <!-- <link name="dummy">
-  </link> -->
+  </link>-->
 
   <!-- Vehicle macro -->
   <xacro:macro name="deepleng_base" params="robot_namespace *gazebo">
@@ -46,7 +46,7 @@
         <inertial>
           <mass value="${mass}" />
           <origin xyz="${cog}" rpy="0 0 0"/>
-          <inertia ixx="1.368" ixy="0" ixz="0"
+          <inertia ixx="1.1368" ixy="0" ixz="0"
                    iyy="87" iyz="0"
                    izz="87" />
         </inertial>
@@ -195,10 +195,10 @@
 <!-- ================================================================================ -->
 
 
-      <!-- <joint name="dummy_joint" type="fixed">
+      <!--<joint name="dummy_joint" type="fixed">
          <parent link="dummy"/>
-         <child link="${namespace}/base_link"/>
-      </joint> -->
+         <child link="${robot_namespace}/base_link"/>
+      </joint>-->
 
       <joint name="x_thruster_joint" type="continuous">
         <origin rpy="0.0 0.0 0.0" xyz="-1.49 0 0"/>
