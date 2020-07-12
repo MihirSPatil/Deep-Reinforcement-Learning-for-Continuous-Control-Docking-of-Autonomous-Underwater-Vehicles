@@ -20,7 +20,7 @@ class pose_mode:
       # print("models: {}".format(data.name[0]))
 
       #poses of each of the models
-      # print("poses: {}".format(data.pose[0]))
+      print("poses: {}".format(data.pose[0].orientation))
 
       #angular and linear velocities of the models
       # print("velocities: {}".format(data.twist[0]))
@@ -31,7 +31,7 @@ class pose_mode:
       diving_cell_rear_rpm = FloatStamped()
       diving_cell_front_rpm = FloatStamped()
 
-      x_thruster_rpm.data = 10.0
+      x_thruster_rpm.data = 1.0
       y_thruster_rear_rpm.data = 0
       y_thruster_front_rpm.data = 0
       diving_cell_rear_rpm.data = 0

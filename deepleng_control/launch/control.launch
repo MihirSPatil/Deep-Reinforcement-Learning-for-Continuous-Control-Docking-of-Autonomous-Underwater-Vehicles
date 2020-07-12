@@ -1,4 +1,4 @@
 <launch>
-  <!-- <node name="pose_input" pkg="deepleng_control" type="pose_mode.py"/> -->
-  <node name="camera_input" pkg="deepleng_control" type="camera_mode.py" output="screen"/>
+  <node name="pose_input" pkg="deepleng_control" type="pose_mode.py" output="screen"/>
+  <!--<node name="camera_input" pkg="deepleng_control" type="camera_mode.py" output="screen"/>-->
 </launch>
