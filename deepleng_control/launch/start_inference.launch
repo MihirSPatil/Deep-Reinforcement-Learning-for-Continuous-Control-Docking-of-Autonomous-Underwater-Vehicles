@@ -1,0 +1,4 @@
+<launch>
+    <!-- Launch the training system -->
+    <node pkg="deepleng_control" name="rl_infer" type="visualization.py" output="screen"/>
+</launch>
