@@ -2,10 +2,11 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <!-- Center of buoyancy -->
-    <xacro:property name="deepleng_cob" value="0 0 0.1"/>
+    <xacro:property name="deepleng_cob" value="0 0 0.025"/>
 
     <!-- Vehicle's actual volume (Gazebo cannot compute the volume out of the mesh) -->
-    <xacro:property name="deepleng_volume" value="0.18"/>
+    <xacro:property name="deepleng_volume" value="0.074"/>
+<!--    <xacro:property name="deepleng_volume" value="0.071"/> if fluid density is 1028 -->
 
     <!-- Describing the dimensions of the vehicle's bounding box -->
     <xacro:property name="deepleng_length" value="3.0"/>
@@ -46,19 +47,24 @@
         <hydrodynamic_model>
           <type>fossen</type>
           <added_mass>
-            100 0 0 0 0 0
-            0 100 0 0 0 0
-            0 0 100 0 0 0
-            0 0 0 100 0 0
-            0 0 0 0 100 0
-            0 0 0 0 0 100
+            70.5 0.0 0.0 0.0 0.0 0.0
+            0.0 478.72 0.0 0.0 0.0 0.0
+            0.0 0.0 478.72 0.0 0.0 0.0
+            0.0 0.0 0.0 0.07 0.0 0.0
+            0.0 0.0 0.0 0.0 368.15 0.0
+            0.0 0.0 0.0 0.0 0.0 368.15
           </added_mass>
           <!--
             The linear damping coefficients can be provided as a diagonal (6 elements)
             or a full matrix (36 coefficients), like the added-mass coefficients above
           -->
           <linear_damping>
-            -30 -80 -80 0 -200 -200
+            -15.51 0 0 0 0 0
+            0 -21.48 0 0 0 0
+            0 0 -21.48 0 0 0
+            0 0 0 -10.0 0 0
+            0 0 0 0 -32.0 0
+            0 0 0 0 0 -32.0
           </linear_damping>
           <!--
             The linear damping coefficients proportional to the forward speed
@@ -67,14 +73,24 @@
             This matrix is mostly useful for slender bodies (e.g. AUVs with torpedo shape)
           -->
           <linear_damping_forward_speed>
-            -30 -80 -80 0 -200 -200
+            -15.51 0 0 0 0 0
+            0 -21.48 0 0 0 0
+            0 0 -21.48 0 0 0
+            0 0 0 -10.0 0 0
+            0 0 0 0 -32.0 0
+            0 0 0 0 0 -32.0
           </linear_damping_forward_speed>
           <!--
             The quadratic damping coefficients can be provided as a diagonal (6 elements)
             or a full matrix (36 coefficients), like the added-mass coefficients above
           -->
           <quadratic_damping>
-            -5 -300 -300 -15 -500 -500
+            -7.81 0 0 0 0 0
+            0 -779.4 0 0 0 0
+            0 0 -779.4 0 0 0
+            0 0 0 -15.0 0 0
+            0 0 0 0 -2020 0
+            0 0 0 0 0 -2020
           </quadratic_damping>
 
           <!--
