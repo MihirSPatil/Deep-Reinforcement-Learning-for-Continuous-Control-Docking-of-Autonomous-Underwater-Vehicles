@@ -1,20 +1,19 @@
-import rospy
-import numpy
+# import rospy
+import numpy as np
 from gym import spaces
 from openai_ros.robot_envs import deepleng_env
 from gym.envs.registration import register
-from geometry_msgs.msg import Pose, Point
-from geometry_msgs.msg import Vector3
-from tf.transformations import euler_from_quaternion
 
-timestep_limit_per_episode = 10  # Can be any Value
+timestep_limit_per_episode = 10000  # Can be any Value
 
 register(
-    id='DeeplengDocking-v0',
+    id='DeeplengDocking-v1',
     entry_point='openai_ros.task_envs.deepleng.deepleng_docking:DeeplengDockingEnv',
     max_episode_steps=timestep_limit_per_episode,
 )
 
+
+# todo: reformat the code for better readability, rename functions appropriately
 
 class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
     def __init__(self):
@@ -22,120 +21,145 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         Make Deepleng learn how to dock to the docking station from a
         starting point within a given range around the docking station.
         """
+        # print("Start DeeplengDockingEnv INIT...")
+        self.action_space = spaces.Box(-150.0, 150.0, (5.0,))
 
-        # Only variable needed to be set here
-
-        rospy.logdebug("Start DeeplengDockingEnv INIT...")
-        # number_actions = rospy.get_param('/wamv/n_actions')
-        # number_actions = 4
-        self.action_space = spaces.Box(-60, 60, (5,))
-
-        # We set the reward range, which is not compulsory but here we do it.
-        self.reward_range = (-100, 100)
+        # We set the reward range, which is not compulsory. did not set it as I wasn't sure what the range would be
+        # self.reward_range = (-20000.0, 20000.0)
+        self.reward_range = (-np.inf, np.inf)
 
         # Actions and Observations
-        self.max_thruster_rpm = 60
-        self.min_thruster_rpm = -60
-        self.max_distance_from_des_point = 5
-        # self.propeller_high_speed = rospy.get_param('/wamv/propeller_high_speed')
-        # self.propeller_low_speed = rospy.get_param('/wamv/propeller_low_speed')
-        # self.max_angular_speed = rospy.get_param('/wamv/max_angular_speed')
-        # self.max_distance_from_des_point = rospy.get_param('/wamv/max_distance_from_des_point')
+        self.max_thruster_rpm = 150.0
+        self.min_thruster_rpm = -150.0
+
+        self.max_linear_vel = 1.5
+        self.min_linear_vel = -1.5
+        self.max_angular_vel = 0.5
+        self.min_angular_vel = -0.5
 
         # Get Desired Point to Get
-        self.desired_pose = Pose()
-        self.desired_pose.position.x = 0.0
-        self.desired_pose.position.y = 0.0
-        self.desired_pose.position.z = -2.0
-        self.desired_pose.orientation.x = 0.0
-        self.desired_pose.orientation.y = 0.0
-        self.desired_pose.orientation.z = 0.0
+        # Desired position is different set so that only the AUV's nose is in the docking station
 
-        self.desired_point_epsilon = 0.5
+        self.desired_pose = dict(position=dict(x=-1.45, y=0.0, z=-2.0), orientation=dict(r=0.0, p=0.0, y=0.0))
 
-        # self.desired_point.x = rospy.get_param("/wamv/desired_point/x")
-        # self.desired_point.y = rospy.get_param("/wamv/desired_point/y")
-        # self.desired_point.z = rospy.get_param("/wamv/desired_point/z")
-        # self.desired_point_epsilon = rospy.get_param("/wamv/desired_point_epsilon")
+        self.desired_vel = dict(linear=dict(x=0.5, y=0.0, z=0.0), angular=dict(x=0.0, y=0.0, z=0.0))
 
-        self.work_space_x_max = 5
-        self.work_space_x_min = -5
-        self.work_space_y_max = 5
-        self.work_space_y_min = -5
-        self.work_space_z_max = 0
-        self.work_space_z_min = -5
+        self.desired_thruster_rpm = dict(x=0.0, y_rear=0.0, y_front=0.0, diving_cell_rear=0.0, diving_cell_front=0.0)
 
-        self.dec_obs = 1
+        self.desired_point_epsilon = 0.05
 
-        # self.work_space_x_max = rospy.get_param("/wamv/work_space/x_max")
-        # self.work_space_x_min = rospy.get_param("/wamv/work_space/x_min")
-        # self.work_space_y_max = rospy.get_param("/wamv/work_space/y_max")
-        # self.work_space_y_min = rospy.get_param("/wamv/work_space/y_min")
+        # roll, pitch and yaw are always in radians
+        # maybe remove roll from the observations since it cannot be controlled anyway
+        self.min_roll = -0.2
+        self.min_pitch = -0.87
+        self.min_yaw = -3.14 / 2
 
-        # self.dec_obs = rospy.get_param("/wamv/number_decimals_precision_obs")
+        # change the values for the roll also
+        self.max_roll = 0.2
+        self.max_pitch = 0.87
+        self.max_yaw = 3.14 / 2
+
+        '''
+        The AUV position needs to be inside this defined limits, i.e it needs to be less than these
+        defined limits excluding these limits themselves
+        '''
+        self.work_space_x_max = 5.0
+        self.work_space_x_min = -5.0
+        self.work_space_y_max = 5.0
+        self.work_space_y_min = -5.0
+        self.work_space_z_max = -0.5
+        self.work_space_z_min = -5.0
+
+        self.dec_obs = 2
 
         # We place the Maximum and minimum values of observations
+        '''
+        Since the docking station is the desired position we set the max and min values around
+        it's pose and velocity by adding and subtracting the max and min values of the robot's workspace
+        '''
+        # observation = [x_r, y_r, z_r, roll, pitch, yaw, x_r_dot, y_r_dot, z_r_dot, roll_dot, pitch_dot, yaw_dot,
+        # thruster1, thruster2, thruster3, thruster4, thruster5]
+        low = np.array([self.desired_pose['position']['x'] - self.work_space_x_max,
+                        self.desired_pose['position']['y'] - self.work_space_y_max,
+                        self.desired_pose['position']['z'] - self.work_space_z_max,
+                        self.desired_pose['orientation']['r'] - self.max_roll,
+                        self.desired_pose['orientation']['p'] - self.max_pitch,
+                        self.desired_pose['orientation']['y'] - self.max_yaw,
+                        self.desired_vel['linear']['x'] - self.max_linear_vel,
+                        self.desired_vel['linear']['y'] - self.max_linear_vel,
+                        self.desired_vel['linear']['z'] - self.max_linear_vel,
+                        self.desired_vel['angular']['x'] - self.max_angular_vel,
+                        self.desired_vel['angular']['y'] - self.max_angular_vel,
+                        self.desired_vel['angular']['z'] - self.max_angular_vel,
+                        self.desired_thruster_rpm['x'] - self.max_thruster_rpm,
+                        self.desired_thruster_rpm['y_rear'] - self.max_thruster_rpm,
+                        self.desired_thruster_rpm['y_front'] - self.max_thruster_rpm,
+                        self.desired_thruster_rpm['diving_cell_rear'] - self.max_thruster_rpm,
+                        self.desired_thruster_rpm['diving_cell_front'] - self.max_thruster_rpm])
 
-        high = numpy.array([self.work_space_x_max,
-                            self.work_space_y_max,
-                            self.work_space_z_max,
-                            3.14,
-                            3.14,
-                            3.14,
-                            self.max_thruster_rpm,
-                            self.max_thruster_rpm,
-                            self.max_thruster_rpm,
-                            self.max_thruster_rpm,
-                            self.max_thruster_rpm,
-                            self.max_distance_from_des_point
-                            ])
+        high = np.array([self.desired_pose['position']['x'] - self.work_space_x_min,
+                         self.desired_pose['position']['y'] - self.work_space_y_min,
+                         self.desired_pose['position']['z'] - self.work_space_z_min,
+                         self.desired_pose['orientation']['r'] - self.min_roll,
+                         self.desired_pose['orientation']['p'] - self.min_pitch,
+                         self.desired_pose['orientation']['y'] - self.min_yaw,
+                         self.desired_vel['linear']['x'] - self.min_linear_vel,
+                         self.desired_vel['linear']['y'] - self.min_linear_vel,
+                         self.desired_vel['linear']['z'] - self.min_linear_vel,
+                         self.desired_vel['angular']['x'] - self.min_angular_vel,
+                         self.desired_vel['angular']['y'] - self.min_angular_vel,
+                         self.desired_vel['angular']['z'] - self.min_angular_vel,
+                         self.desired_thruster_rpm['x'] - self.max_thruster_rpm,
+                         self.desired_thruster_rpm['y_rear'] - self.min_thruster_rpm,
+                         self.desired_thruster_rpm['y_front'] - self.min_thruster_rpm,
+                         self.desired_thruster_rpm['diving_cell_rear'] - self.min_thruster_rpm,
+                         self.desired_thruster_rpm['diving_cell_front'] - self.min_thruster_rpm])
 
-        low = numpy.array([self.work_space_x_min,
-                           self.work_space_y_min,
-                           self.work_space_z_min,
-                           -3.14,
-                           -3.14,
-                           -3.14,
-                           self.min_thruster_rpm,
-                           self.min_thruster_rpm,
-                           self.min_thruster_rpm,
-                           self.min_thruster_rpm,
-                           self.min_thruster_rpm,
-                           0.0
-                           ])
-
+        # todo: how to add the image data to the already existing observations ?
         self.observation_space = spaces.Box(low, high)
 
-        rospy.logdebug("ACTION SPACES TYPE===>" + str(self.action_space))
-        rospy.logdebug("OBSERVATION SPACES TYPE===>" + str(self.observation_space))
+        # print("ACTION SPACES TYPE: ", type(self.action_space))
+        # print("OBSERVATION SPACES TYPE: ", type(self.observation_space))
+        # print("Observation size= ", self.observation_space.shape)
 
         # Rewards
 
         # self.done_reward =rospy.get_param("/wamv/done_reward")
-        self.done_reward = 100
+
         # self.closer_to_point_reward = rospy.get_param("/wamv/closer_to_point_reward")
-        self.closer_to_point_reward = 10
 
         self.cumulated_steps = 0.0
 
         # Here we will add any init functions prior to starting the MyRobotEnv
         super(DeeplengDockingEnv, self).__init__()
 
-        rospy.logdebug("END DeeplengDockingEnv INIT...")
+        # print("END DeeplengDockingEnv INIT...")
 
     def _set_init_pose(self):
         """
-        Sets the two proppelers speed to 0.0 and waits for the time_sleep
+        Sets the initial pose of the AUV to a random value between 0
+        and 5 (excluding 5) meters along the x, y and z axis
+        """
+        # delta to set the limits from -4.9 to 4.9
+        delta = 0.1
+        roll = 0.0
+        x, y = round(np.random.uniform(self.work_space_x_min + delta, self.work_space_x_max - delta, 2), 2)
+        yaw = round(np.random.uniform(self.min_yaw + delta, self.max_yaw - delta), 2)
+        pitch = round(np.random.uniform(self.min_pitch + delta, self.max_pitch - delta), 2)
+        z = round(np.random.uniform(self.work_space_z_min + delta, self.work_space_z_max + delta), 2)
+
+        print("Initial pose:{}".format([x, y, z, roll, pitch, yaw]))
+        self.set_auv_pose(x, y, z, roll, pitch, yaw, time_sleep=1.5)
+
+        return True
+
+    def _set_init_vel(self):
+        """
+        Sets the thruster rpms to 0.0 and waits for the time_sleep
         to allow the action to be executed
         """
         thruster_rpms = [0.0, 0.0, 0.0, 0.0, 0.0]
-        self.set_thruster_speed(thruster_rpms, time_sleep=1.0)
-
-        # right_propeller_speed = 0.0
-        # left_propeller_speed = 0.0
-        # self.set_propellers_speed(  right_propeller_speed,
-        #                             left_propeller_speed,
-        #                             time_sleep=1.0)
+        self.set_thruster_speed(thruster_rpms, time_sleep=1.5)
 
         return True
 
@@ -143,103 +167,79 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         """
         Inits variables needed to be initialised each time we reset at the start
         of an episode.
-        :return:
         """
 
         # For Info Purposes
-        self.cumulated_reward = 0.0
-        # We get the initial pose to mesure the distance from the desired point.
-        auv_pose = self.get_pose()
-        current_pose = Pose()
-        current_pose.position.x = auv_pose.position.x
-        current_pose.position.y = auv_pose.position.y
-        current_pose.position.z = auv_pose.position.z
-        current_pose.orientation.x = auv_pose.orientation.x
-        current_pose.orientation.y = auv_pose.orientation.y
-        current_pose.orientation.z = auv_pose.orientation.z
-        current_pose.orientation.w = auv_pose.orientation.w
 
-        self.previous_distance_from_des_point = self.get_distance_from_desired_point(current_pose.position)
-
-    # TODO:
+        self.cumulative_reward = 0.0
+        # We get the initial pose to measure the distance from the desired point.
+        # these are numpy arrays
+        init_pose = self.get_auv_pose()
+        init_vel = self.get_auv_velocity()
+        init_thruster_rpms = self.get_thruster_rpm()
+        self.previous_difference_to_goal_state = self.get_difference_to_goal_state(init_pose,
+                                                                                   init_vel,
+                                                                                   init_thruster_rpms)
 
     def _set_action(self, action):
         # action comes from the DRL algo we are using
         """
-        It sets the joints of wamv based on the action integer given
-        based on the action number given.
-        :param action: The action integer that sets what movement to do next.
+        It sets the thruster rpm of the deepleng auv based on the rpm values given
+        by the DRL algo we are using.
+        :param action: The action vector containing rpm values for the 5 thrusters.
         """
-
-        rospy.logdebug("Start Set Action ==>" + str(action))
 
         assert action.shape == (5,)
         action = action.copy()  # ensure that we don't change the action outside of this scope
+        # print("Setting action in task env: {}".format(action))
 
         # Apply action to simulation.
-        self.set_thruster_speed(action, time_sleep=1.0)
+        self.set_thruster_speed(action, time_sleep=1.5)
 
     def _get_obs(self):
         """
         Here we define what sensor data defines our robots observations
-        To know which Variables we have access to, we need to read the
-        WamvEnv API DOCS.
+        Currently it includes only the vehicle pose, we need to check how
+        to include the camera data also.
         :return: observation
         """
-        rospy.logdebug("Start Get Observation ==>")
+        # print("Getting observation")
 
-        obs_data = self.get_pose()
-        base_position = obs_data.position
-        base_orientation_quat = obs_data.orientation
-        base_roll, base_pitch, base_yaw = self.get_orientation_euler(base_orientation_quat)
-        # todo: add the velocities to the observation
-        # base_speed_linear = odom.twist.twist.linear
-        # base_speed_angular_yaw = odom.twist.twist.angular.z
+        # todo: could modify to get both the pose and the camera data(in deepleng_env)
+        # getting pose, velocity and thrust observations at the same time
+        self.obs_data_pose = self.get_auv_pose()
 
-        distance_from_desired_point = self.get_distance_from_desired_point(base_position)
+        self.obs_data_vel = self.get_auv_velocity()
 
-        observation = []
-        observation.append(round(base_position.x, self.dec_obs))
-        observation.append(round(base_position.y, self.dec_obs))
-        observation.append(round(base_position.z, self.dec_obs))
+        self.obs_data_thruster_rpm = self.get_thruster_rpm()
 
-        observation.append(round(base_roll, self.dec_obs))
-        observation.append(round(base_pitch, self.dec_obs))
-        observation.append(round(base_yaw, self.dec_obs))
+        self.obs_data_thrust = self.get_thruster_thrust()
 
-        # todo: add the velocities to the observation
-        # observation.append(round(base_speed_linear.x, self.dec_obs))
-        # observation.append(round(base_speed_linear.y, self.dec_obs))
-        #
-        # observation.append(round(base_speed_angular_yaw, self.dec_obs))
+        difference_to_goal_state = self.get_difference_to_goal_state(self.obs_data_pose,
+                                                                     self.obs_data_vel,
+                                                                     self.obs_data_thruster_rpm)
 
-        observation.append(round(distance_from_desired_point, self.dec_obs))
+        # print(difference_to_goal_state.tolist())
 
+        observation = np.round(difference_to_goal_state, self.dec_obs).tolist()
+
+        # print(observation)
+
+        # list of 16 elements, 0-5: pose, 6-11: velocity, 12-16: thruster rpms
         return observation
 
     def _is_done(self, observations):
         """
         We consider the episode done if:
-        1) The wamvs is ouside the workspace
+        1) The auv is outside the workspace
         2) It got to the desired point
         """
-        distance_from_desired_point = observations[-1]
+        # here we use the actual pose of the AUV to check if it is within workspace limits
+        is_within_limit = self.is_inside_workspace(self.obs_data_pose)
 
-        current_position = Point()
-        current_position.x = observations[0]
-        current_position.y = observations[1]
-        current_position.z = observations[2]
+        has_reached_des_point = self.is_in_desired_pose(observations)
 
-        current_orientation = Point()
-        current_orientation.x = observations[3]
-        current_orientation.y = observations[4]
-        current_orientation.z = observations[5]
-
-        # todo: add orientation also to check limits
-        is_within_limit = self.is_inside_workspace(current_position)
-        has_reached_des_point = self.is_in_desired_pose(current_position, self.desired_point_epsilon)
-
-        done = not(is_within_limit) or has_reached_des_point
+        done = not is_within_limit or has_reached_des_point
 
         return done
 
@@ -249,140 +249,119 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         if the distance to the desired point has increased or not
         :return:
         """
-
-        # We only consider the plane, the fluctuation in z is due mainly to wave
-        current_position = Point()
-        current_position.x = observations[0]
-        current_position.y = observations[1]
-        current_position.z = observations[2]
-
-        current_orientation = Point()
-        current_orientation.x = observations[3]
-        current_orientation.y = observations[4]
-        current_orientation.z = observations[5]
-
-        distance_from_des_point = self.get_distance_from_desired_point(current_position)
-        distance_difference = distance_from_des_point - self.previous_distance_from_des_point
+        w_x = 0.4
+        w_y = 1.2  # more weightage for displacement in y
+        w_z = 1.2  # more weightage for displacement in z
+        w_pitch = 0.2  # less weightage since pitch of the vehicle is more limited
+        w_yaw = 0.4  # more weightage for yaw since the vehicle has more freedom in it's yaw
+        # todo: implement a function to calculate the motor torque
+        w_motor_torque = 0.05
+        w_x_dot = 10000
+        w_y_dot = 1000
+        w_z_dot = 1000
+        w_abs_vel = 0.5  # w_u
+        w_pitch_dot = 500
+        w_yaw_dot = 500
+        penalty = 20000
+        terminal_reward = 10000
+        l_abs_vel = 0.05  # delta to avoid division by 0
+        abs_vel = np.linalg.norm(observations[6:9])
+        l_x_dot = 0.01  # delta to avoid division by 0
+        l_y_dot = 0.01  # delta to avoid division by 0
+        l_z_dot = 0.01  # delta to avoid division by 0
+        l_pitch_dot = 0.01  # delta to avoid division by 0
+        l_yaw_dot = 0.01  # delta to avoid division by 0
+        motor_torque_vec = self.obs_data_thrust
+        torque_reward = w_motor_torque * motor_torque_vec**2
+        continuous_reward = - (w_x * (observations[0] ** 2)) - (w_y * (observations[1] ** 2)) \
+                            - (w_z * (observations[2] ** 2)) - (w_pitch * (observations[4] ** 2)) \
+                            - (w_yaw * (observations[5] ** 2)) \
+                            - (w_abs_vel * (abs_vel / max(sum([x ** 2 for x in observations[:3]]), l_abs_vel))) \
+                            - torque_reward[0] - torque_reward[1] - torque_reward[2] - torque_reward[3] \
+                            - torque_reward[4]
 
         if not done:
+            '''
+            is not done only if the robot is inside the workspace, but not yet reached the goal
+            '''
 
-            # If there has been a decrease in the distance to the desired point, we reward it
-            if distance_difference < 0.0:
-                rospy.logwarn("DECREASE IN DISTANCE TO GOAL")
-                reward = self.closer_to_point_reward
-            else:
-                rospy.logerr("INCREASE IN DISTANCE TO GOAL")
-                reward = -1 * self.closer_to_point_reward
+            if not self.is_in_desired_pose(observations) and self.is_inside_workspace(self.obs_data_pose):
+                reward = continuous_reward
+
+            # if self.is_in_desired_pose(observations):  # docking is achieved to desired level of accuracy
+            #
+            #     reward = continuous_reward + terminal_reward + (w_x_dot / max(observations[6] ** 2, l_x_dot)) \
+            #              + (w_y_dot / max(observations[7] ** 2, l_y_dot)) \
+            #              + (w_z_dot / max(observations[8] ** 2, l_z_dot)) \
+            #              + (w_pitch_dot / max(observations[10] ** 2, l_pitch_dot)) \
+            #              + (w_yaw_dot / max(observations[11] ** 2, l_yaw_dot))
+
+            # if not self.is_inside_workspace(self.obs_data_pose):  # auv has gone out of bounds
+            #     reward = - penalty
 
         else:
 
-            if self.is_in_desired_pose(current_position, self.desired_point_epsilon):
-                reward = self.done_reward
+            if self.is_in_desired_pose(observations):
+                reward = continuous_reward + terminal_reward + (w_x_dot / max(observations[6] ** 2, l_x_dot)) \
+                         + (w_y_dot / max(observations[7] ** 2, l_y_dot)) \
+                         + (w_z_dot / max(observations[8] ** 2, l_z_dot)) \
+                         + (w_pitch_dot / max(observations[10] ** 2, l_pitch_dot)) \
+                         + (w_yaw_dot / max(observations[11] ** 2, l_yaw_dot))
             else:
-                reward = -1 * self.done_reward
+                # since the robot will otherwise be outside the workspace limits
+                reward = - penalty
 
-        self.previous_distance_from_des_point = distance_from_des_point
-
-        rospy.logdebug("reward=" + str(reward))
-        self.cumulated_reward += reward
-        rospy.logdebug("Cumulated_reward=" + str(self.cumulated_reward))
+        # print("Reward= ", reward)
+        self.cumulative_reward += reward
+        # print("Cumulative_reward= ", self.cumulative_reward)
         self.cumulated_steps += 1
-        rospy.logdebug("Cumulated_steps=" + str(self.cumulated_steps))
+        # print("Cumulated_steps= ", self.cumulated_steps)
 
         return reward
 
     # Internal TaskEnv Methods
-
-    def is_in_desired_pose(self, current_position, epsilon=0.05):
-        # todo: use orientation also to check the pose
+    # todo: maybe rename to is_in_desired_state
+    def is_in_desired_pose(self, current_observation):
         """
-        It return True if the current position is similar to the desired poistion
+        It return True if the current position is similar to the desired position
+        otherwise return false
         """
-
-        is_in_desired_pos = False
-
-        x_pos_plus = self.desired_pose.position.x + epsilon
-        x_pos_minus = self.desired_pose.position.x - epsilon
-        y_pos_plus = self.desired_pose.position.y + epsilon
-        y_pos_minus = self.desired_pose.position.y - epsilon
-        z_pos_plus = self.desired_pose.position.z + epsilon
-        z_pos_minus = self.desired_pose.position.z - epsilon
-
-        x_current = current_position.x
-        y_current = current_position.y
-        z_current = current_position.z
-
-        x_pos_are_close = (x_current <= x_pos_plus) and (x_current > x_pos_minus)
-        y_pos_are_close = (y_current <= y_pos_plus) and (y_current > y_pos_minus)
-        z_pos_are_close = (z_current <= z_pos_plus) and (z_current > z_pos_minus)
-
-        is_in_desired_pos = x_pos_are_close and y_pos_are_close and z_pos_are_close
-
-        rospy.logdebug("###### IS DESIRED POS ? ######")
-        rospy.logdebug("current_position" + str(current_position))
-        rospy.logdebug("x_pos_plus" + str(x_pos_plus) + ",x_pos_minus=" + str(x_pos_minus))
-        rospy.logdebug("y_pos_plus" + str(y_pos_plus) + ",y_pos_minus=" + str(y_pos_minus))
-        rospy.logdebug("z_pos_plus" + str(z_pos_plus) + ",z_pos_minus=" + str(z_pos_minus))
-        rospy.logdebug("x_pos_are_close" + str(x_pos_are_close))
-        rospy.logdebug("y_pos_are_close" + str(y_pos_are_close))
-        rospy.logdebug("z_pos_are_close" + str(z_pos_are_close))
-        rospy.logdebug("is_in_desired_pos" + str(is_in_desired_pos))
-        rospy.logdebug("############")
+        is_in_desired_pos = np.allclose(current_observation[:6], 0.0, atol=self.desired_point_epsilon)
 
         return is_in_desired_pos
 
-    def get_distance_from_desired_point(self, current_position):
+    def get_difference_to_goal_state(self, current_pose, current_vel, current_thruster_rpms):
         """
-        Calculates the distance from the current position to the desired point
-        :param start_point:
-        :return:
+        Calculates the difference between current pose, velocity and thruster rpm w.r.t
+        the desired pose, velocity and thruster rpm and returns it as a single column vector
         """
-        distance = self.get_distance_from_point(current_position,
-                                                self.desired_pose)
-
-        return distance
-
-    def get_distance_from_point(self, current_position, desired_position):
-        """
-        Given a Vector3 Object, get distance from current position
-        :param p_end:
-        :return:
-        """
-        # print(current_position)
-        # print(desired_position)
-        a = numpy.array((current_position.x, current_position.y, current_position.z))
-        b = numpy.array((desired_position.position.x, desired_position.position.y, desired_position.position.z))
-
-        distance = numpy.linalg.norm(a - b)
-
-        return distance
-
-    def get_orientation_euler(self, quaternion_vector):
-        # We convert from quaternions to euler
-        orientation_list = [quaternion_vector.x,
-                            quaternion_vector.y,
-                            quaternion_vector.z,
-                            quaternion_vector.w]
-
-        roll, pitch, yaw = euler_from_quaternion(orientation_list)
-        return roll, pitch, yaw
+        auv_desired_pose = np.reshape(np.array([list(x.values()) for x in self.desired_pose.values()]), -1)
+        auv_desired_vel = np.reshape(np.array([list(x.values()) for x in self.desired_vel.values()]), -1)
+        auv_desired_thruster_rpm = np.array(list(self.desired_thruster_rpm.values()))
+        pose_diff = auv_desired_pose - current_pose
+        vel_diff = auv_desired_vel - current_vel
+        thruster_diff = auv_desired_thruster_rpm - current_thruster_rpms
+        return np.hstack((pose_diff, vel_diff, thruster_diff))
 
     def is_inside_workspace(self, current_position):
         """
-        Check if the Wamv is inside the Workspace defined
+        Check if the deepleng is inside the defined workspace limits,
+        returns true if it is inside the workspace, and false otherwise
         """
         is_inside = False
 
-        rospy.logwarn("##### INSIDE WORK SPACE? #######")
-        rospy.logwarn("XYZ current_position" + str(current_position))
-        rospy.logwarn(
-            "work_space_x_max" + str(self.work_space_x_max) + ",work_space_x_min=" + str(self.work_space_x_min))
-        rospy.logwarn(
-            "work_space_y_max" + str(self.work_space_y_max) + ",work_space_y_min=" + str(self.work_space_y_min))
-        rospy.logwarn("############")
+        # print("Current position: {}".format(current_position))
+        if self.work_space_x_min <= current_position[0] <= self.work_space_x_max:
+            # print("Within x limits")
+            if self.work_space_y_min <= current_position[1] <= self.work_space_y_max:
+                # print("Within y limits")
+                if self.work_space_z_min <= current_position[2] <= self.work_space_z_max:
+                    # print("Within z limits")
+                    if self.min_pitch <= current_position[4] <= self.max_pitch:
+                        # print("Within pitch limits")
+                        if self.min_yaw <= current_position[5] <= self.max_yaw:
+                            # print("Within yaw limits")
+                            is_inside = True
 
-        if current_position.x > self.work_space_x_min and current_position.x <= self.work_space_x_max:
-            if current_position.y > self.work_space_y_min and current_position.y <= self.work_space_y_max:
-                is_inside = True
-
+        # print("is_inside: ", is_inside)
         return is_inside
