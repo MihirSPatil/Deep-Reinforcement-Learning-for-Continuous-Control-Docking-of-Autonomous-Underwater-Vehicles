@@ -3,6 +3,7 @@
 import rospy
 import cv2 as cv
 import numpy as np
+import message_filters
 from sensor_msgs.msg import Image
 from gazebo_msgs.msg import ModelStates
 from cv_bridge import CvBridge, CvBridgeError
@@ -11,6 +12,7 @@ from uuv_gazebo_ros_plugins_msgs.msg import FloatStamped
 class camera_mode:
 
   def __init__(self):
+
     self.bridge = CvBridge()
     self.camera_sub = rospy.Subscriber('/deepleng/deepleng/camera/camera_image', Image, self.camera_callback)
     self.x_thruster = rospy.Publisher('/deepleng/thrusters/0/input',FloatStamped,queue_size=2)

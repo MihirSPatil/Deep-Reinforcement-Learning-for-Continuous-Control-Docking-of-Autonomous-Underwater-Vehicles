@@ -13,7 +13,7 @@ from openai_ros.task_envs.deepleng import deepleng_docking
 
 if __name__ == '__main__':
 
-    rospy.init_node('deepleng_docker', anonymous=True, log_level=rospy.WARN)
+    rospy.init_node('deepleng_docker', anonymous=True)
 
     # Create the Gym environment
     env = gym.make('DeeplengDocking-v0')
@@ -99,18 +99,9 @@ if __name__ == '__main__':
             # rospy.sleep(2.0)
         m, s = divmod(int(time.time() - start_time), 60)
         h, m = divmod(m, 60)
-        rospy.logerr(("EP: " + str(x + 1) + " - [alpha: " + str(round(qlearn.alpha, 2)) + " - gamma: " + str(
-            round(qlearn.gamma, 2)) + " - epsilon: " + str(round(qlearn.epsilon, 2)) + "] - Reward: " + str(
-            cumulated_reward) + "     Time: %d:%02d:%02d" % (h, m, s)))
 
-    rospy.loginfo(("\n|" + str(nepisodes) + "|" + str(qlearn.alpha) + "|" + str(qlearn.gamma) + "|" + str(
-        initial_epsilon) + "*" + str(epsilon_discount) + "|" + str(highest_reward) + "| PICTURE |"))
 
     l = last_time_steps.tolist()
     l.sort()
-
-    # print("Parameters: a="+str)
-    rospy.loginfo("Overall score: {:0.2f}".format(last_time_steps.mean()))
-    rospy.loginfo("Best 100 score: {:0.2f}".format(reduce(lambda x, y: x + y, l[-100:]) / len(l[-100:])))
 
     env.close()

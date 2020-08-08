@@ -34,7 +34,7 @@ class QLearn:
 
     def chooseAction(self, state, return_q=False):
         q = [self.getQ(state, self.actions)]
-        action = np.random.uniform(low=-60, high=60, size=(5,))
+        action = np.random.uniform(low=-150, high=150, size=(5,))
         return action
 
     def learn(self, state1, action1, reward, state2):

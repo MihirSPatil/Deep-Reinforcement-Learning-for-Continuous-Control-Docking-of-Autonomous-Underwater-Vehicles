@@ -1,4 +1,5 @@
 <launch>
     <!-- Launch the training system -->
     <node pkg="deepleng_control" name="rl_controller" type="start_ddpg.py" output="screen"/>
+    <!-- <node pkg="deepleng_control" name="rl_controller" type="start_qlearning.py" output="screen"/> -->
 </launch>
