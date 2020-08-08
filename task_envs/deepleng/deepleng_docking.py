@@ -143,10 +143,10 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # delta to set the limits from -4.9 to 4.9
         delta = 0.1
         roll = 0.0
-        x, y = round(np.random.uniform(self.work_space_x_min + delta, self.work_space_x_max - delta, 2), 2)
-        yaw = round(np.random.uniform(self.min_yaw + delta, self.max_yaw - delta), 2)
-        pitch = round(np.random.uniform(self.min_pitch + delta, self.max_pitch - delta), 2)
-        z = round(np.random.uniform(self.work_space_z_min + delta, self.work_space_z_max + delta), 2)
+        x, y = np.round(np.random.uniform(self.work_space_x_min + delta, self.work_space_x_max - delta, 2), 2)
+        yaw = np.round(np.random.uniform(self.min_yaw + delta, self.max_yaw - delta), 2)
+        pitch = np.round(np.random.uniform(self.min_pitch + delta, self.max_pitch - delta), 2)
+        z = np.round(np.random.uniform(self.work_space_z_min + delta, self.work_space_z_max + delta), 2)
 
         print("Initial pose:{}".format([x, y, z, roll, pitch, yaw]))
         self.set_auv_pose(x, y, z, roll, pitch, yaw, time_sleep=1.5)
