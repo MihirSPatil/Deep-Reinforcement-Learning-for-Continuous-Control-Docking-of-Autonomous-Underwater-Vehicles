@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <!-- Center of buoyancy -->
-    <xacro:property name="deepleng_cob" value="0 0 0.025"/>
+    <xacro:property name="deepleng_cob" value="0.0 0.0 0.025"/>
 
     <!-- Vehicle's actual volume (Gazebo cannot compute the volume out of the mesh) -->
     <xacro:property name="deepleng_volume" value="0.074"/>
@@ -44,29 +44,23 @@
 
         <!-- 1) Fossen's equation of motion -->
         <hydrodynamic_model>
-          <!-- values taken from  Light Autonomous Underwater Vehicle (LAUV), developed by the Laboratório de Sistemas e Tecnologia Subaquática (LSTS)
-          from Porto University and OceanScan-MST. Giving bad values can cause a crash in the simulation causing gazebo to close. As the linear or
+          <!-- values calculated for a cylinder using the formulas given in common.gazebo.xacro in the uuv_simulator package. Giving bad values can cause a crash in the simulation causing gazebo to close. As the linear or
           angular acceleration is calculated using these bad values can lead to division by zero resulting in nan values.-->
           <type>fossen</type>
           <added_mass>
-            70.5  0.0  0.0  0.0  0.0  0.0
-            0.0  478.72  0.0  0.0  0.0  0.0
-            0.0  0.0  478.72  0.0  0.0  0.0
-            0.0  0.0  0.0  0.07  0.0  0.0
-            0.0  0.0  0.0  0.0  368.15  0.0
-            0.0  0.0  0.0  0.0  0.0  368.15
+            7.4  0       0       0     0       0
+            0     184.72  0       0     0       0
+            0     0       184.72  0     0       0
+            0     0       0       0.07  0       0
+            0     0       0       0     46.18  0
+            0     0       0       0     0       46.18
           </added_mass>
           <!--
             The linear damping coefficients can be provided as a diagonal (6 elements)
             or a full matrix (36 coefficients), like the added-mass coefficients above
           -->
           <linear_damping>
-            -15.51  0  0  0  0  0
-            0  -21.48  0  0  0  0
-            0  0  -21.48  0  0  0
-            0  0  0  -10.0  0  0
-            0  0  0  0  -32.0  0
-            0  0  0  0  0  -32.0
+            -15.51 -21.48 -21.48 -10 -32 -32
           </linear_damping>
           <!--
             The linear damping coefficients proportional to the forward speed
@@ -75,24 +69,14 @@
             This matrix is mostly useful for slender bodies (e.g. AUVs with torpedo shape)
           -->
           <linear_damping_forward_speed>
-            -15.51  0  0  0  0  0
-            0  -21.48  0  0  0  0
-            0  0  -21.48  0  0  0
-            0  0  0  -10.0  0  0
-            0  0  0  0  -32.0  0
-            0  0  0  0  0  -32.0
+            -15.51 -21.48 -21.48 -10 -32 -32
           </linear_damping_forward_speed>
           <!--
             The quadratic damping coefficients can be provided as a diagonal (6 elements)
             or a full matrix (36 coefficients), like the added-mass coefficients above
           -->
           <quadratic_damping>
-            -7.81  0  0  0  0  0
-            0  -779.4  0  0  0  0
-            0  0  -779.4  0  0  0
-            0  0  0  -15.0  0  0
-            0  0  0  0  -2020  0
-            0  0  0  0  0  -2020
+            -7.81 -779.4 -779.4 -15 -2020 -2020
           </quadratic_damping>
 
           <!--
