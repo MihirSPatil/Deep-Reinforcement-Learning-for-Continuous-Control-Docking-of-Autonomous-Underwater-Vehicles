@@ -13,11 +13,11 @@
     Vehicle's parameters (remember to enter the model parameters below)
   -->
 
-  <xacro:property name="mass" value="185.0"/>
+  <xacro:property name="mass" value="74.0"/>
   <!-- Center of gravity -->
-  <xacro:property name="cog" value="-0.05811 -0.00029 0.00492"/>
+  <xacro:property name="cog" value="0.0 0.0 -0.025"/>
   <!-- Fluid density -->
-  <xacro:property name="rho" value="1028"/>
+  <xacro:property name="rho" value="1000"/>
 
   <!--
     Visual mesh file for the vehicle, usually in DAE (Collada) format. Be sure to store the
