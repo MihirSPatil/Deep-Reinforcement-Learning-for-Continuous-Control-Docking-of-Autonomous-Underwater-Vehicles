@@ -22,7 +22,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         starting point within a given range around the docking station.
         """
         # print("Start DeeplengDockingEnv INIT...")
-        self.action_space = spaces.Box(-150.0, 150.0, (5.0,))
+        self.action_space = spaces.Box(-150.0, 150.0, (5,))
 
         # We set the reward range, which is not compulsory. did not set it as I wasn't sure what the range would be
         # self.reward_range = (-20000.0, 20000.0)
