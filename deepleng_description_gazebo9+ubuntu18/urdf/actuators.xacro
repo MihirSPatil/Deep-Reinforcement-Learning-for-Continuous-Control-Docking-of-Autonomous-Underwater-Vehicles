@@ -21,11 +21,11 @@
     </xacro:y_thruster_macro>
 
     <xacro:z_thruster_macro robot_namespace="${namespace}" thruster_id="3">
-        <origin xyz="0.81495 0 0" rpy="0 0 0" />
+        <origin xyz="-0.70343 0 0" rpy="0 0 0" />
     </xacro:z_thruster_macro>
 
     <xacro:z_thruster_macro robot_namespace="${namespace}" thruster_id="4">
-        <origin xyz="-0.70343 0 0" rpy="0 0 0" />
+        <origin xyz="0.81495 0 0" rpy="0 0 0" />
     </xacro:z_thruster_macro>
 
 </robot>
