@@ -63,12 +63,12 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         The AUV position needs to be inside this defined limits, i.e it needs to be less than these
         defined limits excluding these limits themselves
         '''
-        self.work_space_x_max = 6.0
-        self.work_space_x_min = -6.0
-        self.work_space_y_max = 6.0
-        self.work_space_y_min = -6.0
+        self.work_space_x_max = 9.0
+        self.work_space_x_min = -9.0
+        self.work_space_y_max = 9.0
+        self.work_space_y_min = -9.0
         self.work_space_z_max = -0.5
-        self.work_space_z_min = -6.0
+        self.work_space_z_min = -9.0
 
         # We place the Maximum and minimum values of observations
         '''
@@ -142,7 +142,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # z = round(random.uniform(self.work_space_z_min+delta, self.work_space_z_max - delta),2)
 
         pitch = round(random.uniform(-self.reward_threshold_pitch, self.reward_threshold_pitch), 2)
-        yaw = round(np.arctan2(-y, -x), 2)
+        yaw = round(np.arctan2(-y, -x), 2) + np.random.normal(0, 0.2)
 
         self.set_auv_pose(x, y, -2, 0.0, 0.0, yaw, time_sleep=0.5)
         # self.set_auv_pose(x, y, z, roll, pitch, yaw, time_sleep=1)
@@ -176,7 +176,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # self.previous_difference_to_goal_state = self.get_difference_to_goal_state(init_pose,
         #                                                                            init_vel,
         #                                                                            init_thruster_rpms)
-        print("Init_observation: ", np.round(np.hstack((init_pose, init_vel, init_thruster_rpms))))
+        # print("Init_observation: ", np.round(np.hstack((init_pose, init_vel, init_thruster_rpms))))
 
     def _set_action(self, action):
         # action comes from the DRL algo we are using
@@ -215,7 +215,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         self.obs_data_thrust = self.get_thruster_thrust()
 
         observation = np.round(np.hstack((self.obs_data_pose, self.obs_data_vel, self.obs_data_thruster_rpm)), 2)
-        print("Observation: {}".format(observation))
+        # print("Observation: {}".format(observation))
 
         # list of 13 elements, 0-3: pose, 4-9: velocity, 10-13: thruster rpms
         return observation
@@ -233,9 +233,9 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         has_reached_des_point = self.has_reached_goal(observations)
 
         done = not is_within_limit or has_reached_des_point
-        print("Outside limit done: ", not (is_within_limit))
-        print("Reached goal: ", has_reached_des_point)
-        print("Done: ", done)
+        # print("Outside limit done: ", not (is_within_limit))
+        # print("Reached goal: ", has_reached_des_point)
+        # print("Done: ", done)
 
         return done
 
@@ -316,18 +316,18 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         w_y = 25
         w_z = 50
         w_pitch = 100
-        w_u = 1000  # surge(forward) velocity in body frame
-        w_v = 500  # sway velocity in body frame
-        w_w = 500  # heave velocity in body frame
+        w_u = 500  # surge(forward) velocity in body frame
+        w_v = 1000  # sway velocity in body frame
+        w_w = 1000  # heave velocity in body frame
         limit_u = 0.01
 
         auv_desired_pose = np.reshape(np.array([list(x.values()) for x in self.desired_pose.values()]), -1)
         obs_diff = np.round(observations[:4] - auv_desired_pose, 2)
 
         continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2)) \
-                            - (w_pitch * (obs_diff[2] ** 2)) \
                             - (w_u * (observations[4] ** 2 / max(round(np.linalg.norm(obs_diff[:2] ** 2), 2), limit_u))) \
                             - (w_v * observations[5] ** 2) + (w_u * observations[4])
+                            # - (w_pitch * (obs_diff[2] ** 2)) \
 
         if not done:
             if self.is_inside_workspace(observations) and not self.has_reached_goal(observations):
@@ -340,5 +340,5 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
             if not self.is_inside_workspace(observations):
                 reward = -20000
 
-        print("Reward: {}".format(round(reward),2))
+        # print("Reward: {}".format(round(reward),2))
         return round(reward, 2)
