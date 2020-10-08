@@ -7,7 +7,8 @@ from openai_ros import robot_gazebo_env
 from gazebo_msgs.msg import ModelStates, ModelState
 from sensor_msgs.msg import JointState
 from uuv_gazebo_ros_plugins_msgs.msg import FloatStamped
-from tf.transformations import euler_from_quaternion, quaternion_from_euler, euler_matrix
+from tf.transformations import quaternion_from_euler
+import deepleng_env_helper
 
 
 class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
@@ -43,7 +44,7 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         # rospy.logdebug("Starting DeeplengEnv INIT...")
 
         self.controllers_list = []
-        self.distance_from_tip2body_center = np.array([1.35, 0, 0])
+        self.nose_in_body = np.array([1.35, 0, 0]) # coordinates of auv nose tip in body frame
 
         # It doesnt use namespace
         self.robot_name_space = ""
@@ -274,92 +275,31 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
 
     # Methods that the TrainingEnvironment will need.
     # ----------------------------
-    def quat2euler_angle(self, pose_data):
-
-        roll, pitch, yaw = euler_from_quaternion([pose_data.orientation.x,
-                                                  pose_data.orientation.y,
-                                                  pose_data.orientation.z,
-                                                  pose_data.orientation.w])
-        return roll, pitch, yaw
-
-    def coordinate_frame_transform(self, roll, pitch, yaw, frame="world2body"):
-        """
-        Returns the rotation matrix for transforming between the world and body coordinates or vice-versa,
-        depending on the value of 'frame'.
-        Takes the roll, pitch and yaw as the inputs
-        """
-
-        rot_mat = np.array(([cos(yaw) * cos(pitch), (-sin(yaw) * cos(roll)) + (cos(roll) * sin(pitch) * sin(roll)),
-                             (sin(yaw) * sin(roll) + cos(yaw) * cos(pitch) * sin(roll))],
-                            [sin(yaw) * cos(pitch), (cos(yaw) * cos(roll)) + (sin(yaw) * sin(pitch) * sin(roll)),
-                             (cos(yaw) * sin(roll)) + (sin(yaw) * sin(pitch) * cos(roll))],
-                            [-sin(pitch), cos(pitch) * sin(roll), cos(pitch) * cos(roll)]))
-
-        angular_rot_mat = np.array(([1, 0, -sin(pitch)],
-                                    [0, cos(roll), cos(pitch) * sin(roll)],
-                                    [0, -sin(roll), cos(roll) * cos(pitch)]))
-
-        if frame.lower() == "world2body":
-            return rot_mat.T, angular_rot_mat
-
-        if frame.lower() == "body2world":
-            return rot_mat, np.linalg.pinv(angular_rot_mat)
-
-    def modelstate2numpy(self, data, mode='pose'):
-
-        if mode.lower() == 'pose':
-            auv_pose = data.pose[-1]
-            roll, pitch, yaw = self.quat2euler_angle(auv_pose)
-            auv_pose = np.round(np.array([auv_pose.position.x,
-                                          auv_pose.position.y,
-                                          auv_pose.position.z,
-                                          roll,
-                                          pitch,
-                                          yaw]), 2)
-            return auv_pose
-
-        if mode.lower() == 'vel':
-            auv_vel = data.twist[-1]
-            auv_vel = np.array([auv_vel.linear.x,
-                                auv_vel.linear.y,
-                                auv_vel.linear.z,
-                                auv_vel.angular.x,
-                                auv_vel.angular.y,
-                                auv_vel.angular.z])
-            return auv_vel
-
     def set_auv_pose(self, x, y, z, roll, pitch, yaw, time_sleep):
         """
          It will set the initial pose the deepleng.
         """
-        pose_mat = np.array([x, y, z])
-        rot_mat, _ = self.coordinate_frame_transform(roll,
-                                                pitch,
-                                                yaw,
-                                                frame="world2body")
+        # get orientation
+        orient_x, orient_y, orient_z, orient_w = quaternion_from_euler(roll, pitch, yaw)
+        
+        # get nose position in world frame
+        nose_position = deepleng_env_helper.get_nose_position(np.array([x, y, z]),
+                                                              np.array([orient_x, orient_y, orient_z, orient_w]),
+                                                              self.nose_in_body)
 
-        body_frame_pose = rot_mat.dot(pose_mat)
-        auv_pose_at_tip = body_frame_pose - self.distance_from_tip2body_center
-
-        rot_mat, _ = self.coordinate_frame_transform(roll,
-                                                pitch,
-                                                yaw,
-                                                frame="body2world")
-
-        x, y, z = rot_mat.dot(auv_pose_at_tip)
-
+        # dump pose in ModelState message
         pose_msg = ModelState()
         pose_msg.model_name = "deepleng"
-        pose_msg.pose.position.x = x
-        pose_msg.pose.position.y = y
-        pose_msg.pose.position.z = z
-        orient_x, orient_y, orient_z, orient_w = quaternion_from_euler(roll, pitch, yaw)
+        pose_msg.pose.position.x = nose_position[0]
+        pose_msg.pose.position.y = nose_position[1]
+        pose_msg.pose.position.z = nose_position[2]
         pose_msg.pose.orientation.x = orient_x
         pose_msg.pose.orientation.y = orient_y
         pose_msg.pose.orientation.z = orient_z
         pose_msg.pose.orientation.w = orient_w
 
         # print("Setting auv pose to {}".format((x, y, z)))
+        # publish pose
         self.set_deepleng_pose.publish(pose_msg)
         self.wait_time_for_execute_movement(time_sleep)
 
@@ -397,22 +337,20 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         time.sleep(time_sleep)
 
     def get_auv_pose(self):
-        # returns the auv_pose at the nose tip of the auv
-        auv_pose = self.modelstate2numpy(self.auv_data, 'pose')
-        rot_mat, _ = self.coordinate_frame_transform(auv_pose[3],
-                                                auv_pose[4],
-                                                auv_pose[5],
-                                                frame="world2body")
+        """
+        returns the auv_pose at the nose tip of the auv
+        """
+        auv_pose = deepleng_env_helper.modelstate2numpy(self.auv_data, 'pose')
+        orientation = [self.auv_data.orientation.x,
+                       self.auv_data.orientation.y,
+                       self.auv_data.orientation.z,
+                       self.auv_data.orientation.w]
+        nose_position = deepleng_env_helper.get_nose_position(auv_pose[:3],
+                                                              orientation,
+                                                              self.nose_in_body)
+        auv_pose[:3] = nose_position
 
-        body_frame_pose = rot_mat.dot(auv_pose[:3])
-        auv_pose_at_tip = body_frame_pose + self.distance_from_tip2body_center
-
-        rot_mat, _ = self.coordinate_frame_transform(auv_pose[3],
-                                                auv_pose[4],
-                                                auv_pose[5],
-                                                frame="body2world")
-
-        auv_pose = np.append(rot_mat.dot(auv_pose_at_tip), auv_pose[3:])
+        # this should be moved as a parameter to the function
         indices_to_remove = [2, 3]
         auv_pose = np.delete(auv_pose, indices_to_remove)
         # remove z and roll for control only in xy plane
@@ -421,22 +359,25 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         return auv_pose
 
     def get_auv_velocity(self, frame="body"):
-        # returns the linear and angular auv_velocity in either world or body frame
-        auv_vel_world = self.modelstate2numpy(self.auv_data, 'vel')
-        roll, pitch, yaw = np.round(self.quat2euler_angle(self.auv_data.pose[-1]), 2)
+        """
+        returns the linear and angular auv_velocity in either world or body frame
+        """
+        auv_vel_world = deepleng_env_helper.modelstate2numpy(self.auv_data, 'vel')
 
         if frame == 'world':
             return auv_vel_world
 
         if frame == 'body':
-            linear_rot_mat, angular_rot_mat = self.coordinate_frame_transform(roll,
-                                                                              pitch,
-                                                                              yaw,
-                                                                              frame="world2body")
+            orientation = [self.auv_data.pose[-1].orientation.x,
+                           self.auv_data.pose[-1].orientation.y,
+                           self.auv_data.pose[-1].orientation.z,
+                           self.auv_data.pose[-1].orientation.w]
+            linear_vel = deepleng_env_helper.linear_to_body(auv_vel_world[:3],
+                                                            orientation)
+            angular_vel = deepleng_env_helper.angular_to_body(auv_vel_world[3:],
+                                                              orientation)
 
-            auv_vel_body = np.hstack((linear_rot_mat.dot(auv_vel_world[:3]),
-                                      angular_rot_mat.dot(auv_vel_world[3:])))
-            return auv_vel_body
+            return np.hstack((linear_vel, angular_vel)))
 
     def get_thruster_rpm(self):
         # returns the thrusters rpm
