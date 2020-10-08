@@ -20,8 +20,3 @@
 
 #### Use the rostopic rostopic pub -r 20 /deepleng/thrusters/0/input uuv_gazebo_ros_plugins_msgs/FloatStamped '{header: auto, data: 40.0}' to publish rpm commands to the auv. To publish to different thrusters only the thruster_id(0,1,2) needs to be changed.
 
-
-#### Probably need to check the values provided by Lukas, especially for the hydrodynamic plugin and the inertia of the robot's base
-
-
-#### ROS runs on python 2.7 while the DRL libraries run on python 3.5+. So I think compatibility is going to be an issue.
