@@ -82,7 +82,10 @@ def linear_to_body(world_lin_vel, orientation):
      world_lin_vel: np.array, [x',y',z'] linear velocity in world coordinates
      orientation: np.array, [x,y,z,w] orientation of auv as quaternion
     """
-    return euler_from_quaternion(orientation).T.dot(world_lin_vel)
+    return rotation_from_quat(orientation[0],
+                              orientation[1],
+                              orientation[2],
+                              orientation[3]).T.dot(world_lin_vel)
 
 def linear_to_world(body_lin_vel, orientation):
     """
@@ -91,7 +94,10 @@ def linear_to_world(body_lin_vel, orientation):
      body_lin_vel: np.array, [u,v,w] linear velocity in body coordinates
      orientation: np.array, [x,y,z,w] orientation of auv as quaternion
     """
-    return euler_from_quaternion(orientation).dot(body_lin_vel)
+    return rotation_from_quat(orientation[0],
+                              orientation[1],
+                              orientation[2],
+                              orientation[3]).dot(body_lin_vel)
 
 
 def angular_to_body(world_ang_vel, orientation):
@@ -124,3 +130,7 @@ if __name__ == "__main__":
     position = np.array([5,5,0])
     nose_in_body = np.array([1,0,0])
     print(get_nose_position(position, quat, nose_in_body))
+    body_lin = np.array([1,0,0])
+    world_lin = linear_to_world(body_lin, quat)
+    print(world_lin)
+    print(linear_to_body(world_lin,quat))

@@ -8,7 +8,7 @@ from gazebo_msgs.msg import ModelStates, ModelState
 from sensor_msgs.msg import JointState
 from uuv_gazebo_ros_plugins_msgs.msg import FloatStamped
 from tf.transformations import quaternion_from_euler
-import deepleng_env_helper
+from . import deepleng_env_helper
 
 
 class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
@@ -341,10 +341,10 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         returns the auv_pose at the nose tip of the auv
         """
         auv_pose = deepleng_env_helper.modelstate2numpy(self.auv_data, 'pose')
-        orientation = [self.auv_data.orientation.x,
-                       self.auv_data.orientation.y,
-                       self.auv_data.orientation.z,
-                       self.auv_data.orientation.w]
+        orientation = [self.auv_data.pose[-1].orientation.x,
+                       self.auv_data.pose[-1].orientation.y,
+                       self.auv_data.pose[-1].orientation.z,
+                       self.auv_data.pose[-1].orientation.w]
         nose_position = deepleng_env_helper.get_nose_position(auv_pose[:3],
                                                               orientation,
                                                               self.nose_in_body)
@@ -377,7 +377,7 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
             angular_vel = deepleng_env_helper.angular_to_body(auv_vel_world[3:],
                                                               orientation)
 
-            return np.hstack((linear_vel, angular_vel)))
+            return np.hstack((linear_vel, angular_vel))
 
     def get_thruster_rpm(self):
         # returns the thrusters rpm
