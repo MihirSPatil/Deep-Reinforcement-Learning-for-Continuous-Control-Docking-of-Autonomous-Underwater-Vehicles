@@ -1,0 +1,47 @@
+{
+    "ac_kwargs":	{
+        "activation":	"ReLU",
+        "hidden_sizes":	[
+            400,
+            300,
+            300,
+            200,
+            100
+        ]
+    },
+    "actor_critic":	"MLPActorCritic",
+    "clip_ratio":	0.2,
+    "env_fn":	"<function SpinUpPpo.__init__.<locals>.<lambda> at 0x7f7155a3dd08>",
+    "epochs":	250,
+    "exp_name":	"SU_ppo_docker",
+    "gamma":	0.99,
+    "lam":	0.97,
+    "logger":	{
+        "<spinup.utils.logx.EpochLogger object at 0x7f71559d03c8>":	{
+            "epoch_dict":	{},
+            "exp_name":	"SU_ppo_docker",
+            "first_row":	true,
+            "log_current_row":	{},
+            "log_headers":	[],
+            "output_dir":	"/home/dfki.uni-bremen.de/mpatil/alt_ws/src/deepleng_control/spinup_logs/",
+            "output_file":	{
+                "<_io.TextIOWrapper name='/home/dfki.uni-bremen.de/mpatil/alt_ws/src/deepleng_control/spinup_logs/progress.txt' mode='w' encoding='UTF-8'>":	{
+                    "mode":	"w"
+                }
+            }
+        }
+    },
+    "logger_kwargs":	{
+        "exp_name":	"SU_ppo_docker",
+        "output_dir":	"/home/dfki.uni-bremen.de/mpatil/alt_ws/src/deepleng_control/spinup_logs/"
+    },
+    "max_ep_len":	1000,
+    "pi_lr":	0.0003,
+    "save_freq":	10,
+    "seed":	0,
+    "steps_per_epoch":	5000,
+    "target_kl":	0.01,
+    "train_pi_iters":	80,
+    "train_v_iters":	80,
+    "vf_lr":	0.001
+}
