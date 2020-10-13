@@ -1,7 +1,9 @@
 <launch>
+    <include file="$(find uuv_gazebo_worlds)/launch/empty_underwater_world.launch" />
+    <include file="$(find deepleng_description)/launch/upload.launch" />
     <!-- Launch the training system -->
-<!--    <node pkg="deepleng_control" name="rl_controller" type="stable_baselines_ppo2.py" output="screen"/>-->
     <node pkg="deepleng_control" name="rl_controller" type="stable_baselines_ddpg.py" output="screen"/>
+    <!--<node pkg="deepleng_control" name="rl_controller" type="spinup_ppo.py" output="screen"/>-->
     <!--<node pkg="deepleng_control" name="rl_controller" type="rlpyt_ppo.py" output="screen"/>-->
-<!--    <node pkg="deepleng_control" name="rl_controller" type="start_ddpg.py" output="screen"/>-->
+    <!--<node pkg="deepleng_control" name="rl_controller" type="start_ddpg.py" output="screen"/>-->
 </launch>
