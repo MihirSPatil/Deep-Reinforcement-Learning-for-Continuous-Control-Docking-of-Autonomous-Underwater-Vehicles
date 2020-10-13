@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import cos, sin
 import rospy
 import time
 import message_filters
@@ -8,7 +7,7 @@ from gazebo_msgs.msg import ModelStates, ModelState
 from sensor_msgs.msg import JointState
 from uuv_gazebo_ros_plugins_msgs.msg import FloatStamped
 from tf.transformations import quaternion_from_euler
-from . import deepleng_env_helper
+from openai_ros.robot_envs.transform_utils import *
 
 
 class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
@@ -239,24 +238,19 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
     # because they will be used in RobotGazeboEnv GrandParentClass and defined in the
     # TrainingEnvironment.
     # ----------------------------
-    def _set_init_vel(self):
-        """Sets the Robot's initial velocity
-        """
-        raise NotImplementedError()
-
-    def _set_init_pose(self):
-        """Sets the Robot in its init pose
-        """
-        raise NotImplementedError()
+    # def _set_init_vel(self):
+    #     """Sets the Robot's initial velocity
+    #     """
+    #     raise NotImplementedError()
+    #
+    # def _set_init_pose(self):
+    #     """Sets the Robot in its init pose
+    #     """
+    #     raise NotImplementedError()
 
     def _init_env_variables(self):
         """Inits variables needed to be initialised each time we reset at the start
         of an episode.
-        """
-        raise NotImplementedError()
-
-    def _compute_reward(self, observations, done):
-        """Calculates the reward to give based on the observations given.
         """
         raise NotImplementedError()
 
@@ -273,6 +267,11 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         """
         raise NotImplementedError()
 
+    def _compute_reward(self, observations, done):
+        """Calculates the reward to give based on the observations given.
+        """
+        raise NotImplementedError()
+
     # Methods that the TrainingEnvironment will need.
     # ----------------------------
     def set_auv_pose(self, x, y, z, roll, pitch, yaw, time_sleep):
@@ -281,18 +280,26 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         """
         # get orientation
         orient_x, orient_y, orient_z, orient_w = quaternion_from_euler(roll, pitch, yaw)
-        
+        # print('RobotEnv::got random world xyz', x, y, z)
+        # print('RobotEnv:: got random world rpy', roll, pitch, yaw)
         # get nose position in world frame
-        nose_position = deepleng_env_helper.get_nose_position(np.array([x, y, z]),
-                                                              np.array([orient_x, orient_y, orient_z, orient_w]),
-                                                              self.nose_in_body)
+        # this is actually the position of the center, subtract nose value to get nose position
+        body_position = np.array([x, y, z]) - transformed_nose_position(np.array([orient_x, orient_y, orient_z, orient_w]),
+                                                                        self.nose_in_body)
+        # print("RobotEnv::Transformed nose position:", transformed_nose_position(np.array([orient_x,
+        #                                                                                   orient_y,
+        #                                                                                   orient_z,
+        #                                                                                   orient_w]),
+        #                                                                         self.nose_in_body))
+        # print("RobotEnv::Setting AUV body center position:", body_position)
+        # print('---------------------')
 
         # dump pose in ModelState message
         pose_msg = ModelState()
         pose_msg.model_name = "deepleng"
-        pose_msg.pose.position.x = nose_position[0]
-        pose_msg.pose.position.y = nose_position[1]
-        pose_msg.pose.position.z = nose_position[2]
+        pose_msg.pose.position.x = body_position[0]
+        pose_msg.pose.position.y = body_position[1]
+        pose_msg.pose.position.z = body_position[2]
         pose_msg.pose.orientation.x = orient_x
         pose_msg.pose.orientation.y = orient_y
         pose_msg.pose.orientation.z = orient_z
@@ -340,42 +347,45 @@ class DeeplengEnv(robot_gazebo_env.RobotGazeboEnv):
         """
         returns the auv_pose at the nose tip of the auv
         """
-        auv_pose = deepleng_env_helper.modelstate2numpy(self.auv_data, 'pose')
-        orientation = [self.auv_data.pose[-1].orientation.x,
-                       self.auv_data.pose[-1].orientation.y,
-                       self.auv_data.pose[-1].orientation.z,
-                       self.auv_data.pose[-1].orientation.w]
-        nose_position = deepleng_env_helper.get_nose_position(auv_pose[:3],
-                                                              orientation,
-                                                              self.nose_in_body)
-        auv_pose[:3] = nose_position
+        auv_pose = modelstate2numpy(self.auv_data, 'pose')
+        # print('RobotEnv::got AUV body center pose', auv_pose)
+        roll, pitch, yaw = euler_from_quaternion(auv_pose[3:])
 
+        nose_position = auv_pose[:3] + transformed_nose_position(auv_pose[3:],
+                                                                 self.nose_in_body)
+        # print('RobotEnv::got nose_position', nose_position)
+
+        pose_out = np.hstack((nose_position, np.array([roll, pitch, yaw])))
         # this should be moved as a parameter to the function
         indices_to_remove = [2, 3]
-        auv_pose = np.delete(auv_pose, indices_to_remove)
+        pose_out = np.delete(pose_out, indices_to_remove)
         # remove z and roll for control only in xy plane
 
         # print("Robot_env::auv pose: {}".format(auv_pose))
-        return auv_pose
+        return pose_out
 
     def get_auv_velocity(self, frame="body"):
         """
         returns the linear and angular auv_velocity in either world or body frame
         """
-        auv_vel_world = deepleng_env_helper.modelstate2numpy(self.auv_data, 'vel')
+        auv_vel_world = modelstate2numpy(self.auv_data, 'vel')
+        auv_pose = modelstate2numpy(self.auv_data, 'pose')
+        # print("RobotEnv::auv vel world:", auv_vel_world)
 
         if frame == 'world':
             return auv_vel_world
 
         if frame == 'body':
-            orientation = [self.auv_data.pose[-1].orientation.x,
-                           self.auv_data.pose[-1].orientation.y,
-                           self.auv_data.pose[-1].orientation.z,
-                           self.auv_data.pose[-1].orientation.w]
-            linear_vel = deepleng_env_helper.linear_to_body(auv_vel_world[:3],
-                                                            orientation)
-            angular_vel = deepleng_env_helper.angular_to_body(auv_vel_world[3:],
-                                                              orientation)
+            orientation = auv_pose[3:]
+            roll, pitch, yaw = euler_from_quaternion(auv_pose[3:])
+            # print("roll, pitch, yaw: ", [roll, pitch, yaw])
+            linear_vel = linear_to_body(auv_vel_world[:3],
+                                        orientation)
+            # print("RobotEnv::auv vel body linear:", linear_vel)
+
+            angular_vel = angular_to_body(auv_vel_world[3:],
+                                          orientation)
+            # print("RobotEnv::auv vel body angular:", angular_vel)
 
             return np.hstack((linear_vel, angular_vel))
 
