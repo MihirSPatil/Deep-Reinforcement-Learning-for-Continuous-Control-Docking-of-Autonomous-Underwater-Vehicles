@@ -87,9 +87,11 @@
   * > This will only launch the inference, start the simulation and spawn the AUVseperately using the commands descirbed in the prior sections before starting the inference.
   
   
-### openai_ros
+### [openai_ros](http://wiki.ros.org/openai_ros)
 ***
 > Package that acts as the interface between the gazebo simulator and the openai-gym environment
+
+
 >[source](http://wiki.ros.org/openai_ros)
 
 
