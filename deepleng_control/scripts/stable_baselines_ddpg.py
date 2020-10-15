@@ -6,7 +6,7 @@ import numpy as np
 import os
 import gym
 from stable_baselines.common.env_checker import check_env
-from openai_ros.task_envs.deepleng import deepleng_docking
+from deepleng_gym.task_envs.deepleng import deepleng_docking
 from stable_baselines.bench import Monitor
 from stable_baselines import DDPG
 from stable_baselines.ddpg.policies import MlpPolicy
@@ -25,7 +25,7 @@ class SbDdpg():
         outdir = pkg_path + '/monitor_logs/' + expt_name
 
         # self.env = gym.make('LunarLanderContinuous-v2')
-        env = gym.make('DeeplengDocking-v1')
+        env = gym.make('DeeplengDocking-v2')
         self.expt_name = expt_name
         self.env = Monitor(env, outdir)
 

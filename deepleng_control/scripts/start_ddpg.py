@@ -10,7 +10,7 @@ import numpy as np
 from collections import deque
 from ddpg_agent import Agent
 # import our training environment
-from openai_ros.task_envs.deepleng import deepleng_docking
+from deepleng_gym.task_envs.deepleng import deepleng_docking
 
 
 class DdpgDeepleng():
