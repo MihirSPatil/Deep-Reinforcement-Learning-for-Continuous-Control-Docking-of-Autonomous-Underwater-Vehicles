@@ -1,0 +1,3 @@
+[submodule "geometry2"]
+	path = geometry2
+	url = https://github.com/ros/geometry2
