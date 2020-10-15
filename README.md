@@ -120,3 +120,7 @@ How-to:
 
 
 6. Launch training or inference using the commands described in the prior sections.
+
+
+
+> To-do: add folder_structure later
