@@ -4,6 +4,7 @@ import rospy
 import rospkg
 import numpy as np
 import gym
+import os
 from deepleng_gym.task_envs.deepleng import deepleng_docking
 import torch
 from spinup import ppo_pytorch as ppo
