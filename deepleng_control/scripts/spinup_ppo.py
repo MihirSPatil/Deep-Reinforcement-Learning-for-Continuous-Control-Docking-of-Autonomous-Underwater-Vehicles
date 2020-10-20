@@ -15,21 +15,21 @@ class SpinUpPpo():
         pkg_path = rospack.get_path('deepleng_control')
         self.outdir = pkg_path + '/spinup_logs/'
 
-        self.env = lambda: gym.make('DeeplengDocking-v1')
+        self.env = lambda: gym.make('DeeplengDocking-v2')
 
-        # env = Monitor(env, outdir)
+        # self.env = wrappers.Monitor(self.env, self.outdir, force=True)
         # self.env.seed(1)
 
     def __call__(self, *args, **kwargs):
 
-        ac_kwargs = dict(hidden_sizes=[400, 300, 300, 200, 100], activation=torch.nn.ReLU)
+        ac_kwargs = dict(hidden_sizes=[400, 300, 200, 100], activation=torch.nn.ReLU)
 
-        logger_kwargs = dict(output_dir=self.outdir, exp_name='SU_ppo_docker')
+        logger_kwargs = dict(output_dir=self.outdir, exp_name=os.environ["expt_name"])
 
         ppo(env_fn=self.env,
             ac_kwargs=ac_kwargs,
-            steps_per_epoch=5000,
-            epochs=250,
+            steps_per_epoch=250,
+            epochs=400,
             logger_kwargs=logger_kwargs)
 def main():
     rospy.init_node('SpinUpPpo_docker', anonymous=True)
