@@ -24,7 +24,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         starting point within a given range around the docking station.
         """
         # print("Start DeeplengDockingEnv INIT...")
-        self.action_space = spaces.Box(low=-150.0, high=150.0, shape=(3,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
 
         self.reward_range = (-np.inf, np.inf)
         self.num_episodes = 0
@@ -205,7 +205,9 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         action = action.copy()  # ensure that we don't change the action outside of this scope
 
         # print("Unscaled action in task env: {}".format(action))
-        # action = np.interp(action, (action.min(), action.max()), (-150.0, +150.0))
+        action = np.interp(action,
+                           (self.action_space.low[0], self.action_space.high[0]),
+                           (-self.obs_thruster_rpm, self.obs_thruster_rpm))
         # print("Scaled action in task env: {}".format(action))
 
         # action[1] = -150 # these are only to be used when checking the velocity transforms
@@ -230,6 +232,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
 
         self.obs_data_vel = self.get_auv_velocity()
 
+        # self.obs_data_thruster_rpm = np.interp(self.get_thruster_rpm(), (self.get_thruster_rpm().min(), self.get_thruster_rpm().max()), (-1.0, +1.0))
         self.obs_data_thruster_rpm = self.get_thruster_rpm()
 
         self.obs_data_thrust = self.get_thruster_thrust()
@@ -317,20 +320,28 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         w_w = 50  # heave velocity in body frame
         w_u_2 = 50
         limit_u = 0.01
+        wt_x = 2
+        wt_y = 5
 
         auv_desired_pose = np.reshape(np.array([list(x.values()) for x in self.desired_pose.values()]), -1)
+
+
         obs_diff = np.round(observations[:4] - auv_desired_pose, 2)
 
-        # continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2)) \
-        #                     - (w_u * (observations[4] ** 2 / max(round(np.linalg.norm(obs_diff[:2]), 2), limit_u))) \
-        #                     - (w_v * observations[5] ** 2)
-        # - (w_pitch * (obs_diff[2] ** 2)) \
-        continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2)) \
-                            - (w_u * (observations[4] ** 2 / max(round(np.linalg.norm(obs_diff[:2]), 2), limit_u))) \
-                            - (w_v * observations[5] ** 2)
+        continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2))
+                        # - wt_x * np.abs(observations[-3]) \
+                        # - wt_y * np.abs(observations[-2]) \
+                        # - wt_y * np.abs(observations[-1])
 
-        if observations[4] < 0:
-            continuous_reward -= 10
+
+        # continuous_reward = - np.linalg.norm(obs_diff[:2]) \
+        #                     - wt_x * np.abs(observations[-3]) \
+        #                     - wt_y * np.abs(observations[-2]) \
+        #                     - wt_y * np.abs(observations[-1])# euclidean distance reward
+
+        # continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2)) \
+                            # - (w_u * (observations[4] ** 2 / max(round(np.linalg.norm(obs_diff[:2]), 2), limit_u))) \
+                            # - (w_v * observations[5] ** 2)
 
         if not done:
             if self.is_inside_workspace(observations) and not self.has_reached_goal(observations):
@@ -338,7 +349,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
 
         if done:
             if self.has_reached_goal(observations):
-                reward = 5000 + continuous_reward
+                reward = 10000 + continuous_reward
 
             if not self.is_inside_workspace(observations):
                 reward = -20000
