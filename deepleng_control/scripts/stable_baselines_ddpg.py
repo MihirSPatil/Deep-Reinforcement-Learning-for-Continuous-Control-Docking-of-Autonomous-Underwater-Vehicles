@@ -24,7 +24,7 @@ class SbDdpg():
         pkg_path = rospack.get_path('deepleng_control')
         outdir = pkg_path + '/monitor_logs/' + expt_name
 
-        # self.env = gym.make('LunarLanderContinuous-v2')
+        # env = gym.make('LunarLanderContinuous-v2')
         env = gym.make('DeeplengDocking-v2')
         self.expt_name = expt_name
         self.env = Monitor(env, outdir)
@@ -33,7 +33,7 @@ class SbDdpg():
 
         policy_kwargs = dict(layers=[400, 300, 200, 100])
         n_actions = self.env.action_space.shape[-1]
-        action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.2) * np.ones(n_actions))
+        action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.1) * np.ones(n_actions))
 
         # check_env(self.env)
         model = DDPG(MlpPolicy,
@@ -44,7 +44,7 @@ class SbDdpg():
                      tensorboard_log="/home/dfki.uni-bremen.de/mpatil/Documents/baselines_log",
                      verbose=1)
 
-        time_steps = 1e4
+        time_steps = 3e4
         model.learn(total_timesteps=int(time_steps),
                     log_interval=50,
                     tb_log_name="ddpg_Docker_" + self.expt_name)
