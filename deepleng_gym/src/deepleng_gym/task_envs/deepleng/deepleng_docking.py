@@ -228,16 +228,18 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
 
         # todo: could modify to get both the pose and the camera data(in deepleng_env)
         # getting pose, velocity and thrust observations at the same time
-        self.obs_data_pose = self.get_auv_pose()
+        obs_data_pose = self.get_auv_pose()
 
-        self.obs_data_vel = self.get_auv_velocity()
+        obs_data_vel = self.get_auv_velocity()
 
-        # self.obs_data_thruster_rpm = np.interp(self.get_thruster_rpm(), (self.get_thruster_rpm().min(), self.get_thruster_rpm().max()), (-1.0, +1.0))
-        self.obs_data_thruster_rpm = self.get_thruster_rpm()
+        obs_data_thruster_rpm = self.get_thruster_rpm()
+        obs_data_thruster_rpm = np.interp(obs_data_thruster_rpm,
+                                          (-self.obs_thruster_rpm, self.obs_thruster_rpm),
+                                          (self.action_space.low[0], self.action_space.high[0]))
 
         self.obs_data_thrust = self.get_thruster_thrust()
 
-        observation = np.round(np.hstack((self.obs_data_pose, self.obs_data_vel, self.obs_data_thruster_rpm)), 5)
+        observation = np.round(np.hstack((obs_data_pose, obs_data_vel, obs_data_thruster_rpm)), 5)
         print("Observation: {}".format(observation))
 
         # list of 13 elements, 0-3: pose, 4-9: velocity, 10-13: thruster rpms
