@@ -30,7 +30,7 @@ class SbPpo2():
         # env = gym.make('LunarLanderContinuous-v2')
         env = gym.make('DeeplengDocking-v2')
         self.expt_name = expt_name
-        self.env = Monitor(self.env, outdir)
+        self.env = Monitor(env, outdir)
 
     def __call__(self, *args, **kwargs):
         # eval_callback = EvalCallback(env, best_model_save_path=eval_dir,
