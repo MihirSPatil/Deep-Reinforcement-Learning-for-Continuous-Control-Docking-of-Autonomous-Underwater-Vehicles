@@ -7,6 +7,7 @@ import gym
 from deepleng_gym.task_envs.deepleng import deepleng_docking
 from stable_baselines.bench import Monitor
 from stable_baselines import DDPG
+from stable_baselines import PPO2
 from stable_baselines.common.evaluation import evaluate_policy
 
 from stable_baselines.common.env_checker import check_env
@@ -26,7 +27,7 @@ class SbInfer():
     def __call__(self, *args, **kwargs):
         # model = PPO2.load(self.outdir + "ppo_deepleng")
         # model = DDPG.load("/home/dfki.uni-bremen.de/mpatil/Documents/lander_stable_baselines")
-        model = DDPG.load("/home/dfki.uni-bremen.de/mpatil/cluster_logs/saved_models/ddpg_stable_baselines_paper_dist_scaled")
+        model = PPO2.load("/home/dfki.uni-bremen.de/mpatil/cluster_logs/saved_models/sb_ppo_euc_unsc_pen")
         # mean_reward, std_reward = evaluate_policy(model,
         #                                           self.env,
         #                                           n_eval_episodes=10,
