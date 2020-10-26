@@ -9,16 +9,16 @@ from deepleng_gym.task_envs.deepleng import deepleng_docking
 import torch
 from spinup import sac_pytorch as sac
 
-class SpinUpPpo():
+class SpinUpSac():
     '''spinning-up openai SAC'''
     def __init__(self, expt_name):
 
         self.outdir = str(os.path.expanduser('~')) + "/" + expt_name
         try:
-            os.makedirs(path)
-            print("Directory ", path, " Created ")
+            os.makedirs(self.outdir)
+            print("Directory ", self.outdir, " Created ")
         except FileExistsError:
-            print("Directory ", path, " already exists")
+            print("Directory ", self.outdir, " already exists")
 
         self.expt_name = expt_name
 
@@ -40,7 +40,7 @@ class SpinUpPpo():
             logger_kwargs=logger_kwargs)
 def main():
     rospy.init_node('SpinUpSac_docker', anonymous=True)
-    train = SpinUpPpo(os.environ["expt_name"])
+    train = SpinUpSac(os.environ["expt_name"])
     train()
     try:
         rospy.spin()

@@ -7,10 +7,10 @@ import gym
 import os
 from deepleng_gym.task_envs.deepleng import deepleng_docking
 import torch
-from spinup import ppo_pytorch as ppo
+from spinup import ddpg_pytorch as ddpg
 
-class SpinUpPpo():
-    '''spinning-up openai PPO'''
+class SpinUpDdpg():
+    '''spinning-up openai DDPG'''
     def __init__(self, expt_name):
 
         self.outdir = str(os.path.expanduser('~')) + "/" + expt_name
@@ -33,14 +33,14 @@ class SpinUpPpo():
 
         logger_kwargs = dict(output_dir=self.outdir, exp_name=self.expt_name)
 
-        ppo(env_fn=self.env,
+        ddpg(env_fn=self.env,
             ac_kwargs=ac_kwargs,
             steps_per_epoch=250,
             epochs=400,
             logger_kwargs=logger_kwargs)
 def main():
-    rospy.init_node('SpinUpPpo_docker', anonymous=True)
-    train = SpinUpPpo(os.environ["expt_name"])
+    rospy.init_node('SpinUpDdpg_docker', anonymous=True)
+    train = SpinUpDdpg(os.environ["expt_name"])
     train()
     try:
         rospy.spin()
