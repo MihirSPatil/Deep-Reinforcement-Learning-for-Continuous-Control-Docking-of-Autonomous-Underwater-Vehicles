@@ -22,7 +22,8 @@ class SpinUpSac():
 
         self.expt_name = expt_name
 
-        self.env = lambda: gym.make('DeeplengDocking-v2')
+        env = gym.make('DeeplengDocking-v2')
+        self.env = lambda: env
 
         # self.env = wrappers.Monitor(self.env, self.outdir, force=True)
         # self.env.seed(1)
