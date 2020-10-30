@@ -30,11 +30,8 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         self.num_episodes = 0
         self.data_dict = dict()
 
-
         '''Actions and Observations'''
         self.obs_thruster_rpm = 150
-        # self.max_thruster_rpm = 150.0
-        # self.min_thruster_rpm = -150.0
 
         self.obs_linear_vel = 2.0
         self.obs_angular_vel = 1.0
@@ -48,19 +45,16 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         self.desired_pose = dict(position=dict(x=0.0, y=0.0), orientation=dict(p=0.0, y=0.0))
         self.docking_station_origin = dict(x=0.0, y=0.0, z=0.0)
 
-        # self.desired_vel = dict(linear=dict(x=0.0, y=0.0, z=0.0), angular=dict(x=0.0, y=0.0, z=0.0))
-
-        # self.desired_thruster_rpm = dict(x=0.0, y_rear=0.0, y_front=0.0, diving_cell_rear=0.0, diving_cell_front=0.0)
         self.desired_thruster_rpm = dict(x=0.0, y_rear=0.0, y_front=0.0)
 
         '''roll, pitch and yaw are always in radians'''
         # maybe remove roll from the observations since it cannot be controlled anyway
 
         self.reward_threshold_pitch = 0.8
-        self.reward_threshold_yaw = 3.14 / 2
+        self.reward_threshold_yaw = np.pi / 2
 
-        self.obs_threshold_pitch = 3.14
-        self.obs_threshold_yaw = 3.14
+        self.obs_threshold_pitch = np.pi
+        self.obs_threshold_yaw = np.pi
 
         '''
         The AUV position needs to be inside this defined limits, i.e it needs to be less than these
@@ -78,12 +72,11 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         Since the docking station is the desired position we set the max and min values around
         it's pose and velocity by adding and subtracting the max and min values of the robot's workspace
         '''
-        # observation = [x, y, roll, pitch, yaw, x_r_dot, y_r_dot, z_r_dot, roll_dot, pitch_dot, yaw_dot,
+        # observation = [x, y, pitch, yaw, x_r_dot, y_r_dot, z_r_dot, roll_dot, pitch_dot, yaw_dot,
         # thruster1, thruster2, thruster3, thruster4, thruster5]
         high = np.array([self.work_space_x_max,
                          self.work_space_y_max,
                          # self.work_space_z_max,
-                         # self.max_roll,
                          self.obs_threshold_pitch,
                          self.obs_threshold_yaw,
                          self.obs_linear_vel,
@@ -95,12 +88,10 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
                          self.obs_thruster_rpm,
                          self.obs_thruster_rpm,
                          self.obs_thruster_rpm])
-        # 15])
 
         low = np.array([self.work_space_x_min,
                         self.work_space_y_min,
                         # self.work_space_z_min,
-                        # self.min_roll,
                         -1 * self.obs_threshold_pitch,
                         -1 * self.obs_threshold_yaw,
                         -1 * self.obs_linear_vel,
@@ -112,7 +103,6 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
                         -1 * self.obs_thruster_rpm,
                         -1 * self.obs_thruster_rpm,
                         -1 * self.obs_thruster_rpm])
-        # 0])
 
         self.observation_space = spaces.Box(low, high)
         np.set_printoptions(precision=5, suppress=True)
@@ -186,11 +176,6 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         init_thruster_rpms = self.get_thruster_rpm()
         # print("Init Rpms: ", init_thruster_rpms)
 
-        # self.prev_distance_to_goal = self.get_distance_from_point(init_pose[:2], np.array([-1.45, 0]))
-
-        # self.previous_difference_to_goal_state = self.get_difference_to_goal_state(init_pose,
-        #                                                                            init_vel,
-        #                                                                            init_thruster_rpms)
         # print("Init_observation: ", np.round(np.hstack((init_pose, init_vel, init_thruster_rpms)), 2))
 
     def _set_action(self, action):
@@ -245,6 +230,28 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # list of 13 elements, 0-3: pose, 4-9: velocity, 10-13: thruster rpms
         return observation
 
+    def _in_docking_cone(self, observations):
+        """
+        Function to check whether the x and y coordinates of the auv nose lie within a 3d pyramid region
+        projecting outwards of the docking station entrance. The height of this pyramid is presently set
+        to 3.5 along the -ve x axis
+        """
+        x, y = observations[0], observations[1]
+        auv_in_cone = False
+        x_cone = -3.5
+        lower_x = x_cone <= x
+        upper_x = x <= 0
+        upper_y = y <= np.tan(-0.4) * x_cone
+        lower_y = y >= np.tan(0.4) * x_cone
+        # upper_z = z <= tan(0.3) * x_cone
+        # lower_z = z >= tan(0.3) * x_cone
+        # print("upper_x: {}, lower_x: {}, upper_y: {}, lower_y: {}".format(upper_x, lower_x, upper_y, lower_y))
+
+        if upper_x and lower_x and upper_y and lower_y:  # and upper_z and lower_z):
+            auv_in_cone = True
+            # print("Inside cone")
+        return auv_in_cone
+
     def _is_done(self, observations):
         """
         We consider the episode done if:
@@ -270,17 +277,15 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         otherwise return false. Checks only the first 6 elements of the observation
         since these represent the pose.
         """
-
-        # to change once the auv learns how to reach the docking cone
-        # add yaw and pitch check also
-        # circle_radius = 3.5
         # auv_desired_pose = np.reshape(np.array([list(x.values()) for x in self.desired_pose.values()]), -1)
         dock_origin = np.fromiter(self.docking_station_origin.values(), dtype=float)
 
         is_in_desired_pos = False
-        if (np.round(abs(current_observation[:2]) - abs(dock_origin[:2]), 2) <= 3.5).all():
+        if (np.round(abs(current_observation[:2]) - abs(dock_origin[:2]), 2) <= 1).all() and \
+                -0.3 <= (current_observation[3] - self.desired_pose['orientation']['p']) <= 0.3 and \
+                _in_docking_cone(current_observation):
             is_in_desired_pos = True
-
+        # print("Has reached goal: {}".format(is_in_desired_pos))
         return is_in_desired_pos
 
     def is_inside_workspace(self, current_position):
@@ -312,38 +317,47 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         if the distance to the desired point has increased or not
         :return:
         """
-        # Reward approach:
+        # Reward weights:
+        w_euc = 70
         w_x = 0.4
         w_y = 1.2
         w_z = 0
-        w_pitch = 25
         w_u = 0.5  # surge(forward) velocity in body frame
         w_v = 100  # sway velocity in body frame
         w_w = 50  # heave velocity in body frame
-        w_u_2 = 50
-        limit_u = 0.01
+        w_yaw = - 1.3
         wt_x = 2
         wt_y = 5
+        wt_z = 5
 
         auv_desired_pose = np.reshape(np.array([list(x.values()) for x in self.desired_pose.values()]), -1)
 
+        obs_diff = np.round(observations[:4] - auv_desired_pose, 2)  # [x, y, pitch, yaw]
 
-        obs_diff = np.round(observations[:4] - auv_desired_pose, 2)
+        distance_reward = np.linalg.norm(obs_diff[:2])
 
-        continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2))
-                        # - wt_x * np.abs(observations[-3]) \
-                        # - wt_y * np.abs(observations[-2]) \
-                        # - wt_y * np.abs(observations[-1])
+        thruster_reward = - wt_x * np.abs(observations[-3]) \
+                          - wt_y * np.abs(observations[-2]) \
+                          - wt_y * np.abs(observations[-1])  # \
+        # - wt_z * np.abs(observations[-2]) \
+        # - wt_z * np.abs(observations[-1])
 
+        if _in_docking_cone(observations):
+            align_reward = - w_y * abs(obs_diff[1]) \
+                           - w_yaw * abs(obs_diff[-1])  # \
+            #  - w_pitch * abs(obs_diff[-2]) \
+            #  - w_z * abs(observations[2])
+            w_euc = 10
 
-        # continuous_reward = - np.linalg.norm(obs_diff[:2]) \
-        #                     - wt_x * np.abs(observations[-3]) \
-        #                     - wt_y * np.abs(observations[-2]) \
-        #                     - wt_y * np.abs(observations[-1])# euclidean distance reward
+        else:
+            align_reward = 0
 
-        # continuous_reward = - (w_x * (obs_diff[0] ** 2)) - (w_y * (obs_diff[1] ** 2)) \
-                            # - (w_u * (observations[4] ** 2 / max(round(np.linalg.norm(obs_diff[:2]), 2), limit_u))) \
-                            # - (w_v * observations[5] ** 2)
+        #TODO: test with this behind the station penalty
+        # if distance_reward <= 3.5 and obs_diff[0] > 0: #maybe also add limit for y
+        #   behind_station_penalty = -100
+        # else: behind_station_penalty = 0
+
+        continuous_reward = np.sum(((-w_euc * distance_reward), thruster_reward, align_reward))  # , behind_station_penalty))
 
         if not done:
             if self.is_inside_workspace(observations) and not self.has_reached_goal(observations):
@@ -351,17 +365,18 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
 
         if done:
             if self.has_reached_goal(observations):
-                reward = 10000 + continuous_reward
+                # print("reached goal: {}".format(observations))
+                reward = 12000 + continuous_reward
 
             if not self.is_inside_workspace(observations):
                 reward = -20000
-
+        # print("Reward: {}".format(reward))
         self.ep_reward.append(round(reward, 2))
 
         if done:
             print("Episode_num: {}".format(self.num_episodes))
             print("Ep_Reward: {}".format(self.ep_reward))
             self.data_dict[self.num_episodes] = self.ep_reward
-            write_to_json(self.data_dict)
+            write_to_json(self.data_dict) #doesn't work with the spinningup off-policy algos
 
         return round(reward, 2)
