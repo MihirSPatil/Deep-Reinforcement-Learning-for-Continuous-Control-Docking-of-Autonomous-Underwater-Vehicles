@@ -36,7 +36,8 @@ class SpinUpPpo():
 
         ppo(env_fn=self.env,
             ac_kwargs=ac_kwargs,
-            steps_per_epoch=250,
+            # steps_per_epoch=250,
+            steps_per_epoch=1000,
             epochs=400,
             logger_kwargs=logger_kwargs)
 def main():
