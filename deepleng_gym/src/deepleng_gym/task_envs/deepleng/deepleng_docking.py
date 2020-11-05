@@ -326,7 +326,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         w_u = 0.5  # surge(forward) velocity in body frame
         w_v = 100  # sway velocity in body frame
         w_w = 50  # heave velocity in body frame
-        w_yaw = - 1.3
+        w_yaw = 1.3
         wt_x = 2
         wt_y = 5
         wt_z = 5
