@@ -281,9 +281,10 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         dock_origin = np.fromiter(self.docking_station_origin.values(), dtype=float)
 
         is_in_desired_pos = False
+        # if (np.round(abs(current_observation[:2]) - abs(dock_origin[:2]), 2) <= 3.5).all():
         if (np.round(abs(current_observation[:2]) - abs(dock_origin[:2]), 2) <= 1).all() and \
                 -0.3 <= (current_observation[3] - self.desired_pose['orientation']['p']) <= 0.3 and \
-                _in_docking_cone(current_observation):
+                self._in_docking_cone(current_observation):
             is_in_desired_pos = True
         # print("Has reached goal: {}".format(is_in_desired_pos))
         return is_in_desired_pos
@@ -318,7 +319,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         :return:
         """
         # Reward weights:
-        w_euc = 70
+        w_euc = 30
         w_x = 0.4
         w_y = 1.2
         w_z = 0
@@ -342,12 +343,12 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # - wt_z * np.abs(observations[-2]) \
         # - wt_z * np.abs(observations[-1])
 
-        if _in_docking_cone(observations):
+        if self._in_docking_cone(observations):
             align_reward = - w_y * abs(obs_diff[1]) \
                            - w_yaw * abs(obs_diff[-1])  # \
             #  - w_pitch * abs(obs_diff[-2]) \
             #  - w_z * abs(observations[2])
-            w_euc = 10
+            w_euc = 5
 
         else:
             align_reward = 0
@@ -358,6 +359,7 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         # else: behind_station_penalty = 0
 
         continuous_reward = np.sum(((-w_euc * distance_reward), thruster_reward, align_reward))  # , behind_station_penalty))
+        # continuous_reward = np.sum((-distance_reward))  # , behind_station_penalty))
 
         if not done:
             if self.is_inside_workspace(observations) and not self.has_reached_goal(observations):
@@ -366,10 +368,12 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
         if done:
             if self.has_reached_goal(observations):
                 # print("reached goal: {}".format(observations))
-                reward = 12000 + continuous_reward
+                # reward = 10000 + continuous_reward
+                reward = 15000 + continuous_reward
 
             if not self.is_inside_workspace(observations):
-                reward = -20000
+                # reward = -20000
+                reward = -25000
         # print("Reward: {}".format(reward))
         self.ep_reward.append(round(reward, 2))
 
@@ -377,6 +381,6 @@ class DeeplengDockingEnv(deepleng_env.DeeplengEnv):
             print("Episode_num: {}".format(self.num_episodes))
             print("Ep_Reward: {}".format(self.ep_reward))
             self.data_dict[self.num_episodes] = self.ep_reward
-            write_to_json(self.data_dict) #doesn't work with the spinningup off-policy algos
+            write_to_json(self.data_dict) #randomly doesn't work with the spinningup off-policy algos
 
         return round(reward, 2)
