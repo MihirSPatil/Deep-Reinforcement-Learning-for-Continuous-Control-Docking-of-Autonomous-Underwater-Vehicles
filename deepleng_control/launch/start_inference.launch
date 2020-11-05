@@ -3,4 +3,5 @@
 <!--    <include file="$(find deepleng_description)/launch/upload.launch" />-->
     <!-- Launch the training system -->
     <node pkg="deepleng_control" name="rl_infer" type="stable_baselines_infer.py" output="screen"/>
+    <node pkg="deepleng_control" name="rl_infer" type="spinup_infer.py" output="screen"/>
 </launch>
