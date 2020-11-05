@@ -25,7 +25,7 @@ class SpInfer():
         # get_action = load_pytorch_policy(model_path, '', deterministic=False)
         # run_policy(self.env, get_action, num_episodes=10, render=False)
 
-        ac = torch.load('/home/dfki.uni-bremen.de/mpatil/Downloads/spinup_logs/pyt_save/model.pt')
+        ac = torch.load('/home/dfki.uni-bremen.de/mpatil/cluster_logs/ppo_e_dist_th_pen_orient_rew/pyt_save/model.pt')
 
 
         print("Enjoy the trained agent")
