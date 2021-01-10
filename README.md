@@ -5,7 +5,7 @@
 1. _ROS Melodic_
 1. _uuv_simulator_
 2. _openai_gym 0.17.2_
-2. _python 3.6.9
+2. _python 3.6.9_
 3. _stable_baselines_
 4. _tensorflow 1.14_
 
