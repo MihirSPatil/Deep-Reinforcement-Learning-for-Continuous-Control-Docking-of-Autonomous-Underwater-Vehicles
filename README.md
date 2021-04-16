@@ -1,4 +1,4 @@
- Thesis_Code
+Deep Reinforcement Learning for Continuous Control Docking of Autonomous Underwater Vehicles
  ======
 
 **_This guide assumes that the following packages have been cloned and/or installed by the user_**:
