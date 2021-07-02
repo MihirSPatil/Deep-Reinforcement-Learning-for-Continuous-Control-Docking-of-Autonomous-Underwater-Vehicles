@@ -94,6 +94,8 @@ Deep Reinforcement Learning for Continuous Control Docking of Autonomous Underwa
 
 >[source](http://wiki.ros.org/openai_ros)
 
+***
+![ Alt text](misc/defensevid.gif) / ! [](misc/defensevid.gif)
 
 How-to:
 ------
